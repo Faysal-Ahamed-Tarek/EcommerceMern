@@ -25,6 +25,7 @@ export interface Product {
   ratingAverage: number;
   ratingCount: number;
   isFeatured: boolean;
+  isTopSelling: boolean;
   status: "draft" | "published";
   createdAt: string;
   updatedAt: string;

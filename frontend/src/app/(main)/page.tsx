@@ -1,6 +1,7 @@
 import HeroSlider from "@/components/home/HeroSlider";
 import TrustBadges from "@/components/home/TrustBadges";
 import CategoryGrid from "@/components/home/CategoryGrid";
+import TopSellingSection from "@/components/home/TopSellingSection";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import ReviewsSection from "@/components/home/ReviewsSection";
 import type { Product, Review, HeroSlide, ApiResponse } from "@/types";
@@ -10,6 +11,19 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 async function getFeaturedProducts(): Promise<Product[]> {
   try {
     const res = await fetch(`${API}/products?featured=true&limit=8`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return [];
+    const json: ApiResponse<Product[]> = await res.json();
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function getTopSellingProducts(): Promise<Product[]> {
+  try {
+    const res = await fetch(`${API}/products?topSelling=true&limit=8`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];
@@ -45,8 +59,9 @@ async function getHeroSlides(): Promise<HeroSlide[]> {
 }
 
 export default async function HomePage() {
-  const [products, reviews, slides] = await Promise.all([
+  const [featuredProducts, topSellingProducts, reviews, slides] = await Promise.all([
     getFeaturedProducts(),
+    getTopSellingProducts(),
     getApprovedReviews(),
     getHeroSlides(),
   ]);
@@ -56,7 +71,8 @@ export default async function HomePage() {
       <HeroSlider slides={slides} />
       <TrustBadges />
       <CategoryGrid />
-      <FeaturedProducts products={products} />
+      <TopSellingSection products={topSellingProducts} />
+      <FeaturedProducts products={featuredProducts} />
       <ReviewsSection reviews={reviews} />
     </main>
   );

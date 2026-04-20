@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, Tag, ShoppingBag, Star, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ShoppingBag, Star, FileText, Palette, LogOut } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Dashboard",  href: "/admin/dashboard",  icon: LayoutDashboard },
+  { label: "Products",   href: "/admin/products",   icon: Package },
   { label: "Categories", href: "/admin/categories", icon: Tag },
-  { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
-  { label: "Reviews", href: "/admin/reviews", icon: Star },
-  { label: "Content", href: "/admin/content", icon: FileText },
+  { label: "Orders",     href: "/admin/orders",     icon: ShoppingBag },
+  { label: "Reviews",    href: "/admin/reviews",    icon: Star },
+  { label: "Content",    href: "/admin/content",    icon: FileText },
+  { label: "Theme",      href: "/admin/theme",      icon: Palette },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

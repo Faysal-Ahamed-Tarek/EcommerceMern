@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ShoppingCart, Phone, Menu, X, Search, ChevronDown, User
+  ShoppingCart, Phone, Menu, X, Search, Tag, ChevronDown, User
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -42,7 +42,7 @@ export default function Header() {
   return (
     <>
       {/* ── Promo top bar ── */}
-      <div className="bg-green-700 text-white text-xs py-2 text-center font-medium tracking-wide">
+      <div className="bg-green-700 text-white text-base py-2 text-center font-medium tracking-wide">
         🚚 Free delivery on orders above ৳999 &nbsp;|&nbsp; Cash on Delivery available across Bangladesh
       </div>
 
@@ -62,8 +62,8 @@ export default function Header() {
           </Link>
 
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="flex-1 hidden sm:flex">
-            <div className="flex w-full max-w-2xl rounded-xl overflow-hidden border-2 border-green-600 focus-within:border-green-700 transition-colors">
+          <form onSubmit={handleSearch} className="hidden sm:flex flex-1 justify-center">
+            <div className="flex w-full max-w-sm overflow-hidden border-2 border-gray-300 transition-colors">
               <input
                 type="text"
                 value={query}
@@ -71,41 +71,39 @@ export default function Header() {
                 placeholder="Search for products, brands…"
                 className="flex-1 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none bg-white"
               />
+              <div className="w-px bg-gray-300 my-2" aria-hidden="true" />
               <button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 transition-colors px-5 text-white flex items-center gap-1.5 font-medium text-sm"
+                className="px-5 text-white flex items-center gap-1.5 font-medium text-sm "
               >
-                <Search size={16} />
-                <span className="hidden md:inline">Search</span>
+                <Search className="text-gray-600" size={16} />
+                {/* <span className="hidden text-gray-500 md:inline">Search</span>   */}
               </button>
             </div>
           </form>
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-4 ml-auto sm:ml-0 shrink-0">
-            {/* Phone */}
-            <a
-              href="tel:+8801XXXXXXXXX"
-              className="hidden lg:flex flex-col items-end leading-tight text-gray-600 hover:text-green-700 transition-colors"
+            {/* Offer */}
+            <Link
+              href="/products?offer=true"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
             >
-              <span className="text-[10px] text-gray-400 font-medium">SUPPORT</span>
-              <span className="text-sm font-semibold flex items-center gap-1">
-                <Phone size={13} /> +880 1XXX-XXXXXX
-              </span>
-            </a>
+              <Tag size={14} /> Offer
+            </Link>
 
             {/* Cart */}
             <Link
               href="/checkout"
-              className="relative flex items-center gap-2 bg-green-600 hover:bg-green-700 transition-colors text-white px-3 py-2 rounded-xl text-sm font-medium"
+              className="relative flex items-center gap-2 transition-colors px-3 py-2 rounded-xl text-sm font-medium"
             >
               <ShoppingCart size={18} />
-              <span className="hidden sm:inline">Cart</span>
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+              {totalItems >= 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                   {totalItems}
                 </span>
               )}
+                <span className="text-gray-700 hidden sm:inline">Cart</span>
             </Link>
 
             {/* Mobile menu toggle */}
@@ -120,7 +118,7 @@ export default function Header() {
         </div>
 
         {/* Row 2 — Category nav (desktop) */}
-        <nav className="border-t border-gray-100 hidden sm:block bg-white">
+        {/* <nav className="border-t border-gray-100 hidden sm:block bg-white">
           <ul className="max-w-[1200px] mx-auto px-4 flex items-center gap-1 overflow-x-auto no-scrollbar py-1.5">
             <li className="shrink-0">
               <Link
@@ -141,7 +139,7 @@ export default function Header() {
               </li>
             ))}
           </ul>
-        </nav>
+        </nav> */}
 
         {/* Mobile menu drawer */}
         {mobileOpen && (
@@ -172,7 +170,7 @@ export default function Header() {
                 <Link
                   href="/products"
                   onClick={() => setMobileOpen(false)}
-                  className="text-sm px-3 py-2 bg-green-600 text-white rounded-lg font-medium text-center"
+                  className="text-sm px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
                 >
                   All Products
                 </Link>

@@ -18,6 +18,7 @@ interface ProductFormData {
   DiscountPrice: string;
   totalStock: string;
   isFeatured: boolean;
+  isTopSelling: boolean;
   status: "draft" | "published";
   images: ProductImage[];
   variants: ProductVariant[];
@@ -32,6 +33,7 @@ const emptyForm = (): ProductFormData => ({
   DiscountPrice: "",
   totalStock: "",
   isFeatured: false,
+  isTopSelling: false,
   status: "draft",
   images: [],
   variants: [],
@@ -46,6 +48,7 @@ const productToForm = (p: Product): ProductFormData => ({
   DiscountPrice: String(p.DiscountPrice),
   totalStock: p.totalStock !== undefined ? String(p.totalStock) : "",
   isFeatured: p.isFeatured,
+  isTopSelling: p.isTopSelling,
   status: p.status,
   images: p.images,
   variants: p.variants,
@@ -207,6 +210,7 @@ export default function AdminProductsPage() {
                 <th className="px-4 py-3">Price</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Featured</th>
+                <th className="px-4 py-3">Top Selling</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
@@ -227,6 +231,9 @@ export default function AdminProductsPage() {
                   </td>
                   <td className="px-4 py-3">
                     {p.isFeatured && <Star size={14} className="text-amber-500 fill-amber-500" />}
+                  </td>
+                  <td className="px-4 py-3">
+                    {p.isTopSelling && <span className="text-base leading-none">🔥</span>}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -285,10 +292,16 @@ export default function AdminProductsPage() {
                   </select>
                 </Field>
                 <Field label="">
-                  <label className="flex items-center gap-2 mt-5 cursor-pointer">
-                    <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))} className="w-4 h-4 accent-indigo-600" />
-                    <span className="text-sm text-gray-700">Featured product</span>
-                  </label>
+                  <div className="flex flex-col gap-2 mt-5">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))} className="w-4 h-4 accent-indigo-600" />
+                      <span className="text-sm text-gray-700">Featured product</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={form.isTopSelling} onChange={(e) => setForm((f) => ({ ...f, isTopSelling: e.target.checked }))} className="w-4 h-4 accent-orange-500" />
+                      <span className="text-sm text-gray-700">🔥 Top Selling</span>
+                    </label>
+                  </div>
                 </Field>
               </div>
 
