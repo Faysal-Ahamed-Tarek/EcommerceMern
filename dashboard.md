@@ -1,0 +1,11 @@
+## 3. Admin Dashboard (no user login/dashboard)
+- Create a **protected admin dashboard** (JWT‑authenticated)  
+- Admin pages:  
+  - Login page (admin only)  
+  - Dashboard (summary: total orders, recent orders, pending approvals)  
+  - Manage products 
+  - Manage categories
+  - Manage reviews (list, approve/reject, delete)  
+  - Manage orders (view all orders, mark as “completed” or “cancelled”)  
+  - Manage site content (edit: about us, privacy policy, terms and conditions text)  
+- Admin UI must be minimal

@@ -9,6 +9,8 @@ You are a senior full‑stack engineer building a production‑ready e‑commerc
 - **Authentication**: JWT
 - **Payment**: Cash On Delivery
 
+
+
 The app must be **modular**, **well‑organized**, and **documented** (with clear folder structure and comments where needed). 
 
 
@@ -116,19 +118,8 @@ Design the home page with the following structure:
 - Send order info to backend (saved in DB) and optionally notify admin via email 
 ---
 
-## 3. Admin Dashboard (no user login/dashboard)
-- Create a **protected admin dashboard** (JWT‑authenticated)  
-- Admin pages:  
-  - Login page (admin only)  
-  - Dashboard (summary: total orders, recent orders, pending approvals)  
-  - Manage products 
-  - Manage categories
-  - Manage reviews (list, approve/reject, delete)  
-  - Manage orders (view all orders, mark as “completed” or “cancelled”)  
-  - Manage site content (edit: about us, privacy policy, terms and conditions text)  
-- Admin UI must be minimal
 
-## 4. Performance strategy
+## 3. Performance strategy
 
 - **Use Server Components** for product pages and product listing where possible  
 - **Static Generation (SSG)** for product listing (if products are not too dynamic or updated very frequently)  
