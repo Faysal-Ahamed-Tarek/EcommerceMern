@@ -93,6 +93,19 @@ export interface HeroSlide {
   isActive: boolean;
 }
 
+export interface PromoPanelItem {
+  imageUrl: string;
+  publicId: string;
+  link: string;
+  altText: string;
+}
+
+export interface PromoPanel {
+  _id: string;
+  left: PromoPanelItem;
+  right: PromoPanelItem;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
