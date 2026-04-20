@@ -77,12 +77,12 @@ export default function HeroSlider({ slides }: Props) {
 
           {slide.ctaLink && (
             <div className="absolute inset-0 flex items-center px-8 sm:px-16">
-              <Link
+              {/* <Link
                 href={slide.ctaLink}
                 className="bg-green-600 hover:bg-green-700 transition-colors text-white font-bold px-8 py-3 rounded-xl text-sm shadow-lg"
               >
                 Shop Now →
-              </Link>
+              </Link> */}
             </div>
           )}
         </div>

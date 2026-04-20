@@ -85,8 +85,11 @@ export interface CartItem {
 export interface HeroSlide {
   _id: string;
   imageUrl: string;
+  publicId: string;
   ctaLink: string;
   altText?: string;
+  order: number;
+  isActive: boolean;
 }
 
 export interface ApiResponse<T> {

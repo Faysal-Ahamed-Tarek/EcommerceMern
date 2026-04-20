@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "react-hot-toast";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,17 +15,11 @@ export const metadata: Metadata = {
   openGraph: { siteName: "ShopBD", type: "website" },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <Header />
-        <div className="flex-1">{children}</div>
-        <Footer />
+        {children}
         <Toaster
           position="top-right"
           toastOptions={{
