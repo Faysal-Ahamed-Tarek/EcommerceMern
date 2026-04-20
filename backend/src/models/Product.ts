@@ -26,6 +26,7 @@ export interface IProduct extends Document {
   ratingAverage: number;
   ratingCount: number;
   isFeatured: boolean;
+  isTopSelling: boolean;
   status: 'draft' | 'published';
 }
 
@@ -56,6 +57,7 @@ const ProductSchema = new Schema<IProduct>(
     ratingAverage: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     isFeatured: { type: Boolean, default: false },
+    isTopSelling: { type: Boolean, default: false },
     status: { type: String, enum: ['draft', 'published'], default: 'draft' },
   },
   { timestamps: true }

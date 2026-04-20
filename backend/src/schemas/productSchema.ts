@@ -25,6 +25,7 @@ export const createProductSchema = z.object({
   DiscountPrice: z.number().min(0),
   totalStock: z.number().int().min(0).optional(),
   isFeatured: z.boolean().optional(),
+  isTopSelling: z.boolean().optional(),
   status: z.enum(['draft', 'published']).optional(),
 });
 

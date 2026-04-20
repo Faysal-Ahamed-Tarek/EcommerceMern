@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { Admin } from '../models';
+import { Admin, Order, Product, Review } from '../models';
 import { AuthRequest } from '../middleware/auth';
 
 export const adminLogin = async (req: Request, res: Response, next: NextFunction) => {
@@ -26,6 +26,48 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
   try {
     const admin = await Admin.findById(req.adminId).select('-password').lean();
     res.json({ success: true, data: admin });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getStats = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [totalOrders, pendingOrders, totalProducts, pendingReviews] = await Promise.all([
+      Order.countDocuments(),
+      Order.countDocuments({ status: 'pending' }),
+      Product.countDocuments(),
+      Review.countDocuments({ status: 'pending' }),
+    ]);
+    res.json({ success: true, data: { totalOrders, pendingOrders, totalProducts, pendingReviews } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAdminProducts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page = 1, limit = 50, status } = req.query;
+    const filter: Record<string, unknown> = {};
+    if (status && status !== 'all') filter.status = status;
+    const skip = (Number(page) - 1) * Number(limit);
+    const [products, total] = await Promise.all([
+      Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+      Product.countDocuments(filter),
+    ]);
+    res.json({ success: true, data: products, total, page: Number(page), limit: Number(limit) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAllAdminReviews = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { status } = req.query;
+    const filter: Record<string, unknown> = {};
+    if (status && status !== 'all') filter.status = status;
+    const reviews = await Review.find(filter).sort({ createdAt: -1 }).lean();
+    res.json({ success: true, data: reviews });
   } catch (err) {
     next(err);
   }

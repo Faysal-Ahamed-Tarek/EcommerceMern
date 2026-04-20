@@ -3,10 +3,19 @@ import { Product } from '../models';
 
 export const getProducts = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { page = 1, limit = 20, category, minPrice, maxPrice, sort, status } = req.query;
+    const { page = 1, limit = 20, category, search, minPrice, maxPrice, sort, status, featured, topSelling } = req.query;
     const filter: Record<string, unknown> = { status: status || 'published' };
 
     if (category) filter.category = category;
+    if (featured === 'true') filter.isFeatured = true;
+    if (topSelling === 'true') filter.isTopSelling = true;
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { sku: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
     if (minPrice || maxPrice) {
       const priceFilter: Record<string, number> = {};
       if (minPrice) priceFilter.$gte = Number(minPrice);
