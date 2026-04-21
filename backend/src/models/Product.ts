@@ -1,8 +1,10 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IProductVariant {
+  type: string;
   name: string;
   price: number;
+  discountPrice: number;
   stock?: number;
   sku?: string;
 }
@@ -45,14 +47,16 @@ const ProductSchema = new Schema<IProduct>(
     ],
     variants: [
       {
+        type: { type: String, required: true, default: 'weight' },
         name: { type: String, required: true },
         price: { type: Number, required: true },
+        discountPrice: { type: Number, required: true, default: 0 },
         stock: { type: Number },
         sku: { type: String },
       },
     ],
-    basePrice: { type: Number, required: true },
-    DiscountPrice: { type: Number, required: true },
+    basePrice: { type: Number, default: 0 },
+    DiscountPrice: { type: Number, default: 0 },
     totalStock: { type: Number },
     ratingAverage: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },

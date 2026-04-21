@@ -11,31 +11,58 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
     const { items } = req.body;
 
     for (const item of items) {
-      const product = await Product.findOne(
-        { slug: item.productSlug, 'variants.name': item.variant },
-        { 'variants.$': 1, totalStock: 1 }
-      ).lean();
+      const isDefaultVariant = !item.variant || item.variant === 'Default';
 
-      if (!product) {
-        res.status(400).json({ success: false, message: `Product ${item.productSlug} not found` });
-        return;
-      }
-
-      const variant = product.variants?.[0];
-      if (variant?.stock !== undefined && variant.stock < item.quantity) {
-        res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${item.title} (${item.variant})`,
-        });
-        return;
+      if (isDefaultVariant) {
+        const product = await Product.findOne(
+          { slug: item.productSlug },
+          { totalStock: 1 }
+        ).lean();
+        if (!product) {
+          res.status(400).json({ success: false, message: `Product ${item.productSlug} not found` });
+          return;
+        }
+        if (product.totalStock !== undefined && product.totalStock < item.quantity) {
+          res.status(400).json({ success: false, message: `Insufficient stock for ${item.title}` });
+          return;
+        }
+      } else {
+        const product = await Product.findOne(
+          { slug: item.productSlug, 'variants.name': item.variant },
+          { 'variants.$': 1, totalStock: 1 }
+        ).lean();
+        if (!product) {
+          const exists = await Product.findOne({ slug: item.productSlug }, { _id: 1 }).lean();
+          if (!exists) {
+            res.status(400).json({ success: false, message: `Product ${item.productSlug} not found` });
+            return;
+          }
+        } else {
+          const variant = product.variants?.[0];
+          if (variant?.stock !== undefined && variant.stock < item.quantity) {
+            res.status(400).json({
+              success: false,
+              message: `Insufficient stock for ${item.title} (${item.variant})`,
+            });
+            return;
+          }
+        }
       }
     }
 
     for (const item of items) {
-      await Product.updateOne(
-        { slug: item.productSlug, 'variants.name': item.variant },
-        { $inc: { 'variants.$.stock': -item.quantity, totalStock: -item.quantity } }
-      );
+      const isDefaultVariant = !item.variant || item.variant === 'Default';
+      if (isDefaultVariant) {
+        await Product.updateOne(
+          { slug: item.productSlug },
+          { $inc: { totalStock: -item.quantity } }
+        );
+      } else {
+        await Product.updateOne(
+          { slug: item.productSlug, 'variants.name': item.variant },
+          { $inc: { 'variants.$.stock': -item.quantity, totalStock: -item.quantity } }
+        );
+      }
     }
 
     const orderId = await generateOrderId();
