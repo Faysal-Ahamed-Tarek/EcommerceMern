@@ -6,6 +6,7 @@ export interface IOrderItem {
   variant: string;
   price: number;
   quantity: number;
+  category?: string;
 }
 
 export interface IOrder extends Document {
@@ -35,6 +36,7 @@ const OrderSchema = new Schema<IOrder>(
         variant: { type: String, required: true },
         price: { type: Number, required: true },
         quantity: { type: Number, required: true, min: 1 },
+        category: { type: String },
       },
     ],
     totalAmount: { type: Number, required: true },

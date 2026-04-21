@@ -14,7 +14,7 @@ export interface ProductVariant {
 export interface Product {
   _id: string;
   title: string;
-  sku: string;
+  sku?: string;
   slug: string;
   description: string;
   category: string;
@@ -28,6 +28,11 @@ export interface Product {
   isFeatured: boolean;
   isTopSelling: boolean;
   status: "draft" | "published";
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +50,7 @@ export interface OrderItem {
   variant: string;
   price: number;
   quantity: number;
+  category?: string;
 }
 
 export interface Order {

@@ -199,18 +199,18 @@ export default function ProductDetailClient({ product }: Props) {
           </div>
 
           {/* ── Variant Selectors ── */}
-          {variantGroups.map(([type, options]) => (
-            <div key={type}>
+          {variantGroups.map(([type, options], gi) => (
+            <div key={`${type}-${gi}`}>
               <p className="text-sm font-semibold text-gray-800 mb-2 capitalize">
                 {type}:
               </p>
               <div className="flex flex-wrap gap-2">
-                {options.map((v) => {
+                {options.map((v, oi) => {
                   const isSelected = selectedVariants[type]?.name === v.name;
                   const optionPrice = v.discountPrice > 0 ? v.discountPrice : v.price;
                   return (
                     <button
-                      key={v.name}
+                      key={`${v.name}-${oi}`}
                       onClick={() => selectVariant(type, v)}
                       className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
                         isSelected
@@ -296,12 +296,12 @@ export default function ProductDetailClient({ product }: Props) {
       </div>
 
       {/* Product Description */}
-      <div className="mt-12 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-gray-100">
+      <div className="mt-12 ">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4 pb-3 border-b border-gray-100">
           Product Description
         </h2>
         <div
-          className="prose prose-sm max-w-none text-gray-700 prose-headings:text-gray-900 prose-a:text-green-600"
+          className="prose prose-xl max-w-none text-gray-700 prose-headings:text-gray-900 prose-a:text-green-600"
           dangerouslySetInnerHTML={{ __html: sanitizedDesc }}
         />
       </div>

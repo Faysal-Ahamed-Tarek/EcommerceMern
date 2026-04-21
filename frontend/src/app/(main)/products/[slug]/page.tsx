@@ -24,12 +24,25 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) return { title: "Product Not Found" };
+
+  const title = product.metaTitle || product.title;
+  const description =
+    product.metaDescription ||
+    product.description.replace(/<[^>]+>/g, "").slice(0, 160);
+  const ogImage = product.ogImage || product.images[0]?.cloudinaryUrl || "";
+  const keywords = product.metaKeywords || undefined;
+
   return {
-    title: product.title,
-    description: product.description.replace(/<[^>]+>/g, "").slice(0, 160),
+    title,
+    description,
+    keywords,
+    alternates: product.canonicalUrl
+      ? { canonical: product.canonicalUrl }
+      : undefined,
     openGraph: {
-      title: product.title,
-      images: [{ url: product.images[0]?.cloudinaryUrl ?? "" }],
+      title,
+      description,
+      images: ogImage ? [{ url: ogImage }] : [],
     },
   };
 }

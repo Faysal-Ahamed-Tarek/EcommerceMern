@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { adminLogin, getMe, getStats, getAdminProducts, getAllAdminReviews } from '../controllers/adminController';
+import { adminLogin, getMe, getStats, getAdminProducts, getAdminProductById, getAllAdminReviews } from '../controllers/adminController';
 import { getAllSlides, createSlide, updateSlide, deleteSlide } from '../controllers/heroSlideController';
 import { updateConfig } from '../controllers/siteConfigController';
 import { getPromoPanel, updatePromoPanel } from '../controllers/promoPanelController';
@@ -13,6 +13,7 @@ router.get('/stats', protect, getStats);
 
 // Products (all statuses)
 router.get('/products', protect, getAdminProducts);
+router.get('/products/:id', protect, getAdminProductById);
 
 // Reviews (all statuses)
 router.get('/reviews', protect, getAllAdminReviews);

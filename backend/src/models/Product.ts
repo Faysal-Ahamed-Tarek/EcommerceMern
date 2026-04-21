@@ -6,7 +6,6 @@ export interface IProductVariant {
   price: number;
   discountPrice: number;
   stock?: number;
-  sku?: string;
 }
 
 export interface IProductImage {
@@ -16,7 +15,6 @@ export interface IProductImage {
 
 export interface IProduct extends Document {
   title: string;
-  sku: string;
   slug: string;
   description: string;
   category: string;
@@ -30,12 +28,16 @@ export interface IProduct extends Document {
   isFeatured: boolean;
   isTopSelling: boolean;
   status: 'draft' | 'published';
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
 }
 
 const ProductSchema = new Schema<IProduct>(
   {
     title: { type: String, required: true, trim: true },
-    sku: { type: String, required: true, unique: true, trim: true },
     slug: { type: String, unique: true, trim: true },
     description: { type: String, required: true },
     category: { type: String, required: true },
@@ -52,7 +54,6 @@ const ProductSchema = new Schema<IProduct>(
         price: { type: Number, required: true },
         discountPrice: { type: Number, required: true, default: 0 },
         stock: { type: Number },
-        sku: { type: String },
       },
     ],
     basePrice: { type: Number, default: 0 },
@@ -63,6 +64,11 @@ const ProductSchema = new Schema<IProduct>(
     isFeatured: { type: Boolean, default: false },
     isTopSelling: { type: Boolean, default: false },
     status: { type: String, enum: ['draft', 'published'], default: 'draft' },
+    metaTitle: { type: String },
+    metaDescription: { type: String },
+    metaKeywords: { type: String },
+    ogImage: { type: String },
+    canonicalUrl: { type: String },
   },
   { timestamps: true }
 );

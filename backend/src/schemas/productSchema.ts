@@ -7,7 +7,6 @@ const variantSchema = z
     price: z.number().positive(),
     discountPrice: z.number().min(0),
     stock: z.number().int().min(0).optional(),
-    sku: z.string().optional(),
   })
   .refine((v) => v.discountPrice <= v.price, {
     message: 'discountPrice must be <= price',
@@ -17,7 +16,6 @@ const variantSchema = z
 export const createProductSchema = z
   .object({
     title: z.string().min(2).max(200),
-    sku: z.string().min(1).max(100),
     description: z.string().min(1),
     category: z.string().min(1),
     images: z
@@ -35,6 +33,11 @@ export const createProductSchema = z
     isFeatured: z.boolean().optional(),
     isTopSelling: z.boolean().optional(),
     status: z.enum(['draft', 'published']).optional(),
+    metaTitle: z.string().max(120).optional(),
+    metaDescription: z.string().max(320).optional(),
+    metaKeywords: z.string().max(500).optional(),
+    ogImage: z.string().optional(),
+    canonicalUrl: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -49,7 +52,6 @@ export const createProductSchema = z
 
 export const updateProductSchema = z.object({
   title: z.string().min(2).max(200).optional(),
-  sku: z.string().min(1).max(100).optional(),
   description: z.string().min(1).optional(),
   category: z.string().min(1).optional(),
   images: z
@@ -68,6 +70,11 @@ export const updateProductSchema = z.object({
   isFeatured: z.boolean().optional(),
   isTopSelling: z.boolean().optional(),
   status: z.enum(['draft', 'published']).optional(),
+  metaTitle: z.string().max(120).optional(),
+  metaDescription: z.string().max(320).optional(),
+  metaKeywords: z.string().max(500).optional(),
+  ogImage: z.string().optional(),
+  canonicalUrl: z.string().optional(),
 });
 
 export const productQuerySchema = z.object({

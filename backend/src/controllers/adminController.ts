@@ -61,6 +61,19 @@ export const getAdminProducts = async (req: Request, res: Response, next: NextFu
   }
 };
 
+export const getAdminProductById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const product = await Product.findById(req.params.id).lean();
+    if (!product) {
+      res.status(404).json({ success: false, message: 'Product not found' });
+      return;
+    }
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getAllAdminReviews = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { status } = req.query;

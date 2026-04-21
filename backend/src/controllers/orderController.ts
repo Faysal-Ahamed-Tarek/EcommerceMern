@@ -10,6 +10,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
   try {
     const { items } = req.body;
 
+    // Stock validation
     for (const item of items) {
       const isDefaultVariant = !item.variant || item.variant === 'Default';
 
@@ -50,23 +51,34 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       }
     }
 
-    for (const item of items) {
-      const isDefaultVariant = !item.variant || item.variant === 'Default';
-      if (isDefaultVariant) {
-        await Product.updateOne(
+    // Stock deduction + category population
+    const enrichedItems = await Promise.all(
+      items.map(async (item: typeof items[number]) => {
+        const isDefaultVariant = !item.variant || item.variant === 'Default';
+        const product = await Product.findOne(
           { slug: item.productSlug },
-          { $inc: { totalStock: -item.quantity } }
-        );
-      } else {
-        await Product.updateOne(
-          { slug: item.productSlug, 'variants.name': item.variant },
-          { $inc: { 'variants.$.stock': -item.quantity, totalStock: -item.quantity } }
-        );
-      }
-    }
+          { category: 1 }
+        ).lean();
+        const category = product?.category ?? '';
+
+        if (isDefaultVariant) {
+          await Product.updateOne(
+            { slug: item.productSlug },
+            { $inc: { totalStock: -item.quantity } }
+          );
+        } else {
+          await Product.updateOne(
+            { slug: item.productSlug, 'variants.name': item.variant },
+            { $inc: { 'variants.$.stock': -item.quantity, totalStock: -item.quantity } }
+          );
+        }
+
+        return { ...item, category };
+      })
+    );
 
     const orderId = await generateOrderId();
-    const order = await Order.create({ ...req.body, orderId });
+    const order = await Order.create({ ...req.body, items: enrichedItems, orderId });
     res.status(201).json({ success: true, data: order });
   } catch (err) {
     next(err);
@@ -75,9 +87,23 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 
 export const getOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
+    const { page = 1, limit = 200, status, startDate, endDate, category } = req.query;
     const filter: Record<string, unknown> = {};
+
     if (status) filter.status = status as string;
+    if (category) filter['items.category'] = category as string;
+
+    if (startDate || endDate) {
+      const dateFilter: Record<string, Date> = {};
+      if (startDate) dateFilter.$gte = new Date(startDate as string);
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.$lte = end;
+      }
+      filter.createdAt = dateFilter;
+    }
+
     const skip = (Number(page) - 1) * Number(limit);
     const [orders, total] = await Promise.all([
       Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
@@ -115,6 +141,19 @@ export const updateOrderStatus = async (req: Request, res: Response, next: NextF
       return;
     }
     res.json({ success: true, data: order });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.id).lean();
+    if (!order) {
+      res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+    res.json({ success: true, message: 'Order deleted' });
   } catch (err) {
     next(err);
   }

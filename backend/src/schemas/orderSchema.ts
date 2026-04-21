@@ -13,6 +13,7 @@ export const createOrderSchema = z.object({
         variant: z.string().min(1),
         price: z.number().positive(),
         quantity: z.number().int().min(1),
+        category: z.string().optional(),
       })
     )
     .min(1),
