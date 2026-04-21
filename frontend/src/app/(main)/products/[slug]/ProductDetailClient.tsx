@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SafeImage from "@/components/ui/SafeImage";
-import { ShoppingCart, Zap, MessageCircle, Star, ChevronRight, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Zap, MessageCircle, ChevronRight, Minus, Plus } from "lucide-react";
 import DOMPurify from "dompurify";
 import { useCartStore } from "@/store/cartStore";
 import type { Product, ProductVariant } from "@/types";
@@ -17,30 +17,82 @@ interface Props {
 export default function ProductDetailClient({ product }: Props) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    product.variants[0] ?? null
-  );
-  const [mainImage, setMainImage] = useState(product.images[0]?.cloudinaryUrl ?? "");
 
+  const [mainImage, setMainImage] = useState(product.images[0]?.cloudinaryUrl ?? "");
   const [qty, setQty] = useState(1);
 
-  const displayPrice = selectedVariant?.price ?? product.DiscountPrice ?? product.basePrice;
-  const hasDiscount = product.DiscountPrice > 0 && product.DiscountPrice < product.basePrice;
-  const discountPct = hasDiscount
-    ? Math.round(((product.basePrice - product.DiscountPrice) / product.basePrice) * 100)
-    : 0;
+  // ─── Variant grouping ─────────────────────────────────────────────────────
+  const variantGroups = useMemo(() => {
+    if (!product.variants || product.variants.length === 0) return [];
+    const map = new Map<string, ProductVariant[]>();
+    for (const v of product.variants) {
+      if (!map.has(v.type)) map.set(v.type, []);
+      map.get(v.type)!.push(v);
+    }
+    return Array.from(map.entries());
+  }, [product.variants]);
+
+  const hasVariants = variantGroups.length > 0;
+
+  // ─── Selected variant state (default to first option of each type) ─────────
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>(() => {
+    const defaults: Record<string, ProductVariant> = {};
+    for (const [type, options] of variantGroups) {
+      defaults[type] = options[0];
+    }
+    return defaults;
+  });
+
+  const selectVariant = (type: string, variant: ProductVariant) => {
+    setSelectedVariants((prev) => ({ ...prev, [type]: variant }));
+  };
+
+  // ─── Dynamic pricing ───────────────────────────────────────────────────────
+  const primarySelected = hasVariants ? Object.values(selectedVariants)[0] : null;
+
+  const displayPrice = hasVariants
+    ? primarySelected
+      ? primarySelected.discountPrice > 0
+        ? primarySelected.discountPrice
+        : primarySelected.price
+      : 0
+    : product.DiscountPrice > 0
+    ? product.DiscountPrice
+    : product.basePrice;
+
+  const baseDisplayPrice = hasVariants
+    ? primarySelected?.price ?? 0
+    : product.basePrice;
+
+  const hasDiscount = hasVariants
+    ? !!primarySelected &&
+      primarySelected.discountPrice > 0 &&
+      primarySelected.discountPrice < primarySelected.price
+    : product.DiscountPrice > 0 && product.DiscountPrice < product.basePrice;
+
+  const discountPct =
+    hasDiscount && baseDisplayPrice > 0
+      ? Math.round(((baseDisplayPrice - displayPrice) / baseDisplayPrice) * 100)
+      : 0;
 
   const sanitizedDesc =
     typeof window !== "undefined"
       ? DOMPurify.sanitize(product.description)
       : product.description;
 
+  // ─── Cart ──────────────────────────────────────────────────────────────────
+  const variantLabel = hasVariants
+    ? Object.values(selectedVariants)
+        .map((v) => v.name)
+        .join(" / ")
+    : "Default";
+
   const handleAddToCart = () => {
     addItem({
       productSlug: product.slug,
       title: product.title,
       image: mainImage,
-      variant: selectedVariant?.name ?? "Default",
+      variant: variantLabel,
       price: displayPrice,
       quantity: qty,
     });
@@ -53,11 +105,12 @@ export default function ProductDetailClient({ product }: Props) {
   };
 
   const whatsappMsg = encodeURIComponent(
-    `Hi, I want to order:\n*${product.title}*\nVariant: ${selectedVariant?.name ?? "Default"}\nQty: ${qty}\nSKU: ${product.sku}`
+    `Hi, I want to order:\n*${product.title}*${hasVariants ? `\nVariant: ${variantLabel}` : ""}\nQty: ${qty}\nSKU: ${product.sku}`
   );
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-6 pb-16">
+
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-500 mb-6">
         <Link href="/" className="hover:text-green-600">Home</Link>
@@ -68,9 +121,9 @@ export default function ProductDetailClient({ product }: Props) {
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
+
         {/* ── Left: Images ── */}
         <div className="space-y-3">
-          {/* Main image */}
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
             <SafeImage
               src={mainImage}
@@ -87,7 +140,6 @@ export default function ProductDetailClient({ product }: Props) {
             )}
           </div>
 
-          {/* Thumbnail strip */}
           {product.images.length > 1 && (
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {product.images.map((img) => (
@@ -115,6 +167,8 @@ export default function ProductDetailClient({ product }: Props) {
 
         {/* ── Right: Details ── */}
         <div className="space-y-5">
+
+          {/* Category + Title */}
           <div>
             <p className="text-xs text-green-600 font-semibold uppercase tracking-wider mb-1">
               {product.category}
@@ -123,26 +177,6 @@ export default function ProductDetailClient({ product }: Props) {
               {product.title}
             </h1>
           </div>
-
-          {/* Rating */}
-          {product.ratingCount > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <span
-                    key={i}
-                    className={`text-lg ${i < Math.round(product.ratingAverage) ? "text-amber-400" : "text-gray-200"}`}
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              <span className="text-sm text-gray-600">
-                <span className="font-semibold">{product.ratingAverage.toFixed(1)}</span>
-                {" "}({product.ratingCount} reviews)
-              </span>
-            </div>
-          )}
 
           {/* Price */}
           <div className="bg-green-50 rounded-2xl px-5 py-4 border border-green-100">
@@ -153,10 +187,10 @@ export default function ProductDetailClient({ product }: Props) {
               {hasDiscount && (
                 <>
                   <span className="text-lg text-gray-400 line-through">
-                    ৳{product.basePrice.toLocaleString()}
+                    ৳{baseDisplayPrice.toLocaleString()}
                   </span>
                   <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                    SAVE ৳{(product.basePrice - displayPrice).toLocaleString()}
+                    SAVE ৳{(baseDisplayPrice - displayPrice).toLocaleString()}
                   </span>
                 </>
               )}
@@ -164,48 +198,53 @@ export default function ProductDetailClient({ product }: Props) {
             <p className="text-xs text-green-700 mt-1 font-medium">💵 Payment: Cash on Delivery</p>
           </div>
 
-          {/* Variants */}
-          {product.variants.length > 0 && (
-            <div>
-              <p className="text-sm font-semibold text-gray-800 mb-2.5">
-                Select Variant:
-                <span className="text-green-600 ml-1">{selectedVariant?.name}</span>
+          {/* ── Variant Selectors ── */}
+          {variantGroups.map(([type, options]) => (
+            <div key={type}>
+              <p className="text-sm font-semibold text-gray-800 mb-2 capitalize">
+                {type}:
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.variants.map((v) => (
-                  <button
-                    key={v.name}
-                    onClick={() => setSelectedVariant(v)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                      selectedVariant?.name === v.name
-                        ? "bg-green-600 text-white border-green-600 shadow-md"
-                        : "border-gray-200 text-gray-700 hover:border-green-400 hover:text-green-700 bg-white"
-                    }`}
-                  >
-                    {v.name}
-                    <span className="ml-1.5 text-xs opacity-80">৳{v.price.toLocaleString()}</span>
-                  </button>
-                ))}
+                {options.map((v) => {
+                  const isSelected = selectedVariants[type]?.name === v.name;
+                  const optionPrice = v.discountPrice > 0 ? v.discountPrice : v.price;
+                  return (
+                    <button
+                      key={v.name}
+                      onClick={() => selectVariant(type, v)}
+                      className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
+                        isSelected
+                          ? "border-green-600 bg-green-50 text-green-800 shadow-sm"
+                          : "border-gray-200 text-gray-700 hover:border-gray-400"
+                      }`}
+                    >
+                      <span>{v.name}</span>
+                      <span className={`ml-2 text-xs ${isSelected ? "text-green-700" : "text-gray-500"}`}>
+                        ৳{optionPrice.toLocaleString()}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
+          ))}
 
           {/* Quantity */}
           <div>
             <p className="text-sm font-semibold text-gray-800 mb-2.5">Quantity:</p>
-            <div className="flex items-center gap-0 border-2 border-gray-200 rounded-xl w-fit overflow-hidden">
+            <div className="flex items-center border-2 border-gray-200 rounded-xl w-fit overflow-hidden">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="px-4 py-2.5 text-gray-600 hover:bg-gray-100 transition-colors font-bold"
+                className="px-4 py-2.5 text-gray-600 hover:bg-gray-100 transition-colors"
               >
                 <Minus size={16} />
               </button>
-              <span className="px-5 py-2.5 font-bold text-gray-900 min-w-[3rem] text-center bg-white">
+              <span className="px-6 py-2.5 font-bold text-gray-900 min-w-[3.5rem] text-center bg-white select-none">
                 {qty}
               </span>
               <button
                 onClick={() => setQty((q) => q + 1)}
-                className="px-4 py-2.5 text-gray-600 hover:bg-gray-100 transition-colors font-bold"
+                className="px-4 py-2.5 text-gray-600 hover:bg-gray-100 transition-colors"
               >
                 <Plus size={16} />
               </button>
@@ -228,7 +267,7 @@ export default function ProductDetailClient({ product }: Props) {
             </button>
           </div>
 
-          {/* WhatsApp order */}
+          {/* WhatsApp */}
           <a
             href={`https://wa.me/8801XXXXXXXXX?text=${whatsappMsg}`}
             target="_blank"
@@ -239,7 +278,7 @@ export default function ProductDetailClient({ product }: Props) {
             Order via WhatsApp
           </a>
 
-          {/* Quick info */}
+          {/* Quick trust badges */}
           <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-100">
             {[
               { icon: "🚚", label: "Free delivery", sub: "above ৳999" },
@@ -256,7 +295,7 @@ export default function ProductDetailClient({ product }: Props) {
         </div>
       </div>
 
-      {/* ── Product Description ── */}
+      {/* Product Description */}
       <div className="mt-12 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
         <h2 className="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-gray-100">
           Product Description

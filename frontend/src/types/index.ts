@@ -4,10 +4,11 @@ export interface ProductImage {
 }
 
 export interface ProductVariant {
+  type: string;
   name: string;
   price: number;
+  discountPrice: number;
   stock?: number;
-  sku?: string;
 }
 
 export interface Product {
@@ -18,9 +19,9 @@ export interface Product {
   description: string;
   category: string;
   images: ProductImage[];
-  variants: ProductVariant[];
   basePrice: number;
   DiscountPrice: number;
+  variants?: ProductVariant[];
   totalStock?: number;
   ratingAverage: number;
   ratingCount: number;

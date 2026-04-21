@@ -59,23 +59,6 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Quick links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Manage Products", href: "/admin/products", color: "bg-indigo-600" },
-          { label: "Manage Orders", href: "/admin/orders", color: "bg-orange-500" },
-          { label: "Approve Reviews", href: "/admin/reviews", color: "bg-purple-600" },
-          { label: "Hero Slides", href: "/admin/content", color: "bg-teal-600" },
-        ].map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`${link.color} text-white text-center py-3 px-4 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity`}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </div>
 
       {/* Recent orders */}
       <div className="bg-white rounded-xl shadow-sm">
