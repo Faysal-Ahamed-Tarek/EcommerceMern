@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
-import { Loader2, ChevronDown, Trash2, X } from "lucide-react";
-import type { Order } from "@/types";
+import { Loader2, ChevronDown, Trash2, X, ExternalLink, FileText } from "lucide-react";
+import type { Order, Category } from "@/types";
 
 type OrderStatus = Order["status"];
 
@@ -17,17 +18,13 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 
 const ALL_STATUSES: OrderStatus[] = ["pending", "confirmed", "completed", "cancelled"];
 
-const CATEGORIES = [
-  "Rice", "Flour", "Oil", "Sugar", "Salt", "Spices", "Lentils",
-  "Noodles", "Snacks", "Beverages", "Dairy", "Cleaning", "Personal Care",
-];
-
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"all" | OrderStatus>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Filters
   const [startDate, setStartDate] = useState("");
@@ -36,6 +33,10 @@ export default function AdminOrdersPage() {
 
   // Delete
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get("/categories").then((r) => setCategories(r.data.data)).catch(() => {});
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -137,8 +138,8 @@ export default function AdminOrdersPage() {
             className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <option value="">All categories</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c.name}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -150,7 +151,9 @@ export default function AdminOrdersPage() {
             <X size={13} /> Clear filters
           </button>
         )}
-        <span className="ml-auto text-sm text-gray-400">{orders.length} order{orders.length !== 1 ? "s" : ""}</span>
+        <span className="ml-auto text-sm text-gray-400">
+          {orders.length} order{orders.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
       {loading ? (
@@ -210,6 +213,27 @@ export default function AdminOrdersPage() {
                   />
                 </div>
 
+                {/* View details link */}
+                <Link
+                  href={`/admin/orders/${o._id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium transition-colors shrink-0"
+                  title="View & edit order"
+                >
+                  <ExternalLink size={13} />
+                </Link>
+
+                {/* Receipt link */}
+                <Link
+                  href={`/admin/orders/${o._id}/receipt`}
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 text-xs font-medium transition-colors shrink-0"
+                  title="View receipt"
+                >
+                  <FileText size={13} />
+                </Link>
+
                 {/* Delete button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setDeleteId(o._id); }}
@@ -223,6 +247,14 @@ export default function AdminOrdersPage() {
               {/* Expanded items */}
               {expanded === o._id && (
                 <div className="border-t border-gray-100 px-5 py-4 bg-gray-50">
+                  <div className="flex justify-end mb-3">
+                    <Link
+                      href={`/admin/orders/${o._id}`}
+                      className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 bg-indigo-50 px-3 py-1.5 rounded-lg"
+                    >
+                      <ExternalLink size={12} /> Edit Order Details
+                    </Link>
+                  </div>
                   <div className="grid sm:grid-cols-2 gap-4 mb-3 text-sm">
                     <div>
                       <p className="text-xs font-medium text-gray-500 mb-1">Address</p>

@@ -7,6 +7,7 @@ export interface IOrderItem {
   price: number;
   quantity: number;
   category?: string;
+  image?: string;
 }
 
 export interface IOrder extends Document {
@@ -17,6 +18,7 @@ export interface IOrder extends Document {
   address: string;
   items: IOrderItem[];
   totalAmount: number;
+  deliveryCharge: number;
   paymentMethod: 'cod';
   paymentStatus: 'pending' | 'paid';
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -37,9 +39,11 @@ const OrderSchema = new Schema<IOrder>(
         price: { type: Number, required: true },
         quantity: { type: Number, required: true, min: 1 },
         category: { type: String },
+        image: { type: String },
       },
     ],
     totalAmount: { type: Number, required: true },
+    deliveryCharge: { type: Number, default: 0 },
     paymentMethod: { type: String, enum: ['cod'], default: 'cod' },
     paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
     status: {

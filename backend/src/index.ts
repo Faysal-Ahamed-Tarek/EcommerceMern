@@ -6,6 +6,7 @@ import morgan from 'morgan';
 
 import connectDB from './lib/db';
 import { errorHandler } from './middleware/errorHandler';
+import { Product } from './models';
 
 import productRoutes from './routes/productRoutes';
 import categoryRoutes from './routes/categoryRoutes';
@@ -41,6 +42,8 @@ app.use(errorHandler);
 
 const start = async () => {
   await connectDB();
+  // Drop stale sku_1 unique index left over from an older schema version
+  await Product.collection.dropIndex('sku_1').catch(() => {});
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT} [${process.env.NODE_ENV}]`);
   });

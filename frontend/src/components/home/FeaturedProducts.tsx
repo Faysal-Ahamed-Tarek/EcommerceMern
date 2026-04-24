@@ -46,7 +46,7 @@ export default function FeaturedProducts({ products }: Props) {
         {products.map((product) => (
           <div
             key={product._id}
-            className="snap-start shrink-0 w-[70vw] sm:w-[48%] lg:w-[calc((100%-3rem)/4)]"
+            className="snap-start shrink-0 w-[calc(50%-0.375rem)] sm:w-[calc(50%-0.5rem)] lg:w-[calc((100%-3rem)/4)]"
           >
             <ProductCard product={product} />
           </div>

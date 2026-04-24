@@ -33,13 +33,44 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
 
 export const getStats = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [totalOrders, pendingOrders, totalProducts, pendingReviews] = await Promise.all([
+    const [totalOrders, pendingOrders, totalProducts, pendingReviews, activeProducts] = await Promise.all([
       Order.countDocuments(),
       Order.countDocuments({ status: 'pending' }),
       Product.countDocuments(),
       Review.countDocuments({ status: 'pending' }),
+      Product.countDocuments({ status: 'published' }),
     ]);
-    res.json({ success: true, data: { totalOrders, pendingOrders, totalProducts, pendingReviews } });
+    res.json({ success: true, data: { totalOrders, pendingOrders, totalProducts, pendingReviews, activeProducts } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getLowInventoryProducts = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const products = await Product.find({
+      status: 'published',
+      totalStock: { $exists: true, $ne: null, $lt: 20 },
+    })
+      .sort({ totalStock: 1 })
+      .limit(5)
+      .select('title totalStock images slug')
+      .lean();
+    res.json({ success: true, data: products });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getTopSellingProducts = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const topSlugs: { _id: string; title: string; totalQty: number }[] = await Order.aggregate([
+      { $unwind: '$items' },
+      { $group: { _id: '$items.productSlug', title: { $first: '$items.title' }, image: { $first: '$items.image' }, totalQty: { $sum: '$items.quantity' } } },
+      { $sort: { totalQty: -1 } },
+      { $limit: 5 },
+    ]);
+    res.json({ success: true, data: topSlugs });
   } catch (err) {
     next(err);
   }

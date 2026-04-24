@@ -42,7 +42,7 @@ export default function Header() {
   return (
     <>
       {/* ── Promo top bar ── */}
-      <div className="bg-green-700 text-white text-base py-2 text-center font-medium tracking-wide">
+      <div className="bg-green-700 text-white text-sm px-2 py-2 text-center font-medium tracking-wide">
         🚚 Free delivery on orders above ৳999 &nbsp;|&nbsp; Cash on Delivery available across Bangladesh
       </div>
 

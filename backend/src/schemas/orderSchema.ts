@@ -14,9 +14,11 @@ export const createOrderSchema = z.object({
         price: z.number().positive(),
         quantity: z.number().int().min(1),
         category: z.string().optional(),
+        image: z.string().optional(),
       })
     )
     .min(1),
   totalAmount: z.number().positive(),
+  deliveryCharge: z.number().min(0).optional(),
   paymentMethod: z.literal('cod'),
 });

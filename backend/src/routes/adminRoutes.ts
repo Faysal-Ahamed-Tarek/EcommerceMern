@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { adminLogin, getMe, getStats, getAdminProducts, getAdminProductById, getAllAdminReviews } from '../controllers/adminController';
+import { adminLogin, getMe, getStats, getAdminProducts, getAdminProductById, getAllAdminReviews, getLowInventoryProducts, getTopSellingProducts } from '../controllers/adminController';
 import { getAllSlides, createSlide, updateSlide, deleteSlide } from '../controllers/heroSlideController';
 import { updateConfig } from '../controllers/siteConfigController';
 import { getPromoPanel, updatePromoPanel } from '../controllers/promoPanelController';
@@ -10,6 +10,8 @@ const router = Router();
 router.post('/login', adminLogin);
 router.get('/me', protect, getMe);
 router.get('/stats', protect, getStats);
+router.get('/low-inventory', protect, getLowInventoryProducts);
+router.get('/top-selling', protect, getTopSellingProducts);
 
 // Products (all statuses)
 router.get('/products', protect, getAdminProducts);

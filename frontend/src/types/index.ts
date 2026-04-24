@@ -14,7 +14,6 @@ export interface ProductVariant {
 export interface Product {
   _id: string;
   title: string;
-  sku?: string;
   slug: string;
   description: string;
   category: string;
@@ -51,6 +50,7 @@ export interface OrderItem {
   price: number;
   quantity: number;
   category?: string;
+  image?: string;
 }
 
 export interface Order {
@@ -62,6 +62,7 @@ export interface Order {
   address: string;
   items: OrderItem[];
   totalAmount: number;
+  deliveryCharge?: number;
   paymentMethod: "cod";
   paymentStatus: "pending" | "paid";
   status: "pending" | "confirmed" | "completed" | "cancelled";

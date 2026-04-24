@@ -51,15 +51,16 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       }
     }
 
-    // Stock deduction + category population
+    // Stock deduction + enrich items with category and image
     const enrichedItems = await Promise.all(
       items.map(async (item: typeof items[number]) => {
         const isDefaultVariant = !item.variant || item.variant === 'Default';
         const product = await Product.findOne(
           { slug: item.productSlug },
-          { category: 1 }
+          { category: 1, images: 1 }
         ).lean();
         const category = product?.category ?? '';
+        const image = product?.images?.[0]?.cloudinaryUrl ?? '';
 
         if (isDefaultVariant) {
           await Product.updateOne(
@@ -73,7 +74,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           );
         }
 
-        return { ...item, category };
+        return { ...item, category, image };
       })
     );
 
@@ -134,6 +135,44 @@ export const updateOrderStatus = async (req: Request, res: Response, next: NextF
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { status },
+      { new: true, runValidators: true }
+    ).lean();
+    if (!order) {
+      res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+    res.json({ success: true, data: order });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getOrderByOrderId = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const order = await Order.findOne({ orderId: req.params.orderId }).lean();
+    if (!order) {
+      res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+    res.json({ success: true, data: order });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { customerName, phone, address, note, status } = req.body;
+    const update: Record<string, unknown> = {};
+    if (customerName !== undefined) update.customerName = customerName;
+    if (phone !== undefined) update.phone = phone;
+    if (address !== undefined) update.address = address;
+    if (note !== undefined) update.note = note;
+    if (status !== undefined) update.status = status;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { $set: update },
       { new: true, runValidators: true }
     ).lean();
     if (!order) {

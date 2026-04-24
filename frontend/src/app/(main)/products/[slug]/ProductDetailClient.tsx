@@ -105,7 +105,7 @@ export default function ProductDetailClient({ product }: Props) {
   };
 
   const whatsappMsg = encodeURIComponent(
-    `Hi, I want to order:\n*${product.title}*${hasVariants ? `\nVariant: ${variantLabel}` : ""}\nQty: ${qty}\nSKU: ${product.sku}`
+    `Hi, I want to order:\n*${product.title}*${hasVariants ? `\nVariant: ${variantLabel}` : ""}\nQty: ${qty}`
   );
 
   return (
@@ -297,11 +297,12 @@ export default function ProductDetailClient({ product }: Props) {
 
       {/* Product Description */}
       <div className="mt-12 ">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4 pb-3 border-b border-gray-100">
-          Product Description
-        </h2>
+        <div className="flex items-center gap-3 mb-5">
+          <span className="block w-1 h-6 bg-green-600 rounded-full" />
+          <h2 className="text-xl sm:text-xl font-bold text-gray-900">Product Description</h2>
+        </div>
         <div
-          className="prose prose-xl max-w-none text-gray-700 prose-headings:text-gray-900 prose-a:text-green-600"
+          className="prose prose-md max-w-none text-gray-700 prose-headings:text-gray-900 prose-a:text-green-600"
           dangerouslySetInnerHTML={{ __html: sanitizedDesc }}
         />
       </div>
