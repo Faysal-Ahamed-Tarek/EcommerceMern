@@ -3,10 +3,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IReview extends Document {
   productSlug: string;
   isVerifiedPurchase: boolean;
-  orderId: string;
+  orderId?: string;
   customerName: string;
   rating: number;
   comment: string;
+  imageUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -14,10 +15,11 @@ const ReviewSchema = new Schema<IReview>(
   {
     productSlug: { type: String, required: true },
     isVerifiedPurchase: { type: Boolean, default: false },
-    orderId: { type: String, required: true },
+    orderId: { type: String },
     customerName: { type: String, required: true, trim: true },
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, required: true, trim: true },
+    imageUrl: { type: String },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],

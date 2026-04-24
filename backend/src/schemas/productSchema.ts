@@ -17,6 +17,10 @@ export const createProductSchema = z
   .object({
     title: z.string().min(2).max(200),
     description: z.string().min(1),
+    shortDescription: z.string().optional(),
+    howToUse: z.string().optional(),
+    ingredients: z.string().optional(),
+    sku: z.string().optional(),
     category: z.string().min(1),
     images: z
       .array(
@@ -53,6 +57,10 @@ export const createProductSchema = z
 export const updateProductSchema = z.object({
   title: z.string().min(2).max(200).optional(),
   description: z.string().min(1).optional(),
+  shortDescription: z.string().optional(),
+  howToUse: z.string().optional(),
+  ingredients: z.string().optional(),
+  sku: z.string().optional(),
   category: z.string().min(1).optional(),
   images: z
     .array(

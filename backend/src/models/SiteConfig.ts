@@ -7,6 +7,7 @@ export interface ISiteConfig extends Document {
   storePhone?: string;
   storeEmail?: string;
   storeLogo?: string;
+  marqueeTexts: string[];
 }
 
 const SiteConfigSchema = new Schema<ISiteConfig>(
@@ -17,6 +18,13 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
     storePhone: { type: String },
     storeEmail: { type: String },
     storeLogo: { type: String },
+    marqueeTexts: {
+      type: [String],
+      default: [
+        '🚚 Free delivery on orders above ৳999',
+        'Cash on Delivery available across Bangladesh',
+      ],
+    },
   },
   { timestamps: true }
 );

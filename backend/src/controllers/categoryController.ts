@@ -1,10 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
-import { Category } from '../models';
+import { Category, Product } from '../models';
 
 export const getCategories = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const categories = await Category.find().sort({ name: 1 }).lean();
-    res.json({ success: true, data: categories });
+    const [categories, productCounts] = await Promise.all([
+      Category.find().sort({ name: 1 }).lean(),
+      Product.aggregate([
+        { $match: { status: 'published' } },
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+      ]),
+    ]);
+    const countMap = new Map<string, number>(
+      productCounts.map((c: { _id: string; count: number }) => [c._id, c.count])
+    );
+    const withCounts = categories.map((cat) => ({
+      ...cat,
+      productCount: countMap.get(cat.name) ?? 0,
+    }));
+    res.json({ success: true, data: withCounts });
   } catch (err) {
     next(err);
   }

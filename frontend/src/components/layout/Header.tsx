@@ -1,19 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ShoppingCart, Phone, Menu, X, Search, Tag, ChevronDown, User
+  ShoppingCart, Phone, Menu, X, Search, Tag,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useDebounce } from "@/hooks/useDebounce";
 import { api } from "@/lib/api";
 import type { Category } from "@/types";
 
+const DEFAULT_MARQUEE = [
+  "🚚 Free delivery on orders above ৳999",
+  "Cash on Delivery available across Bangladesh",
+];
+
 export default function Header() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [marqueeTexts, setMarqueeTexts] = useState<string[]>(DEFAULT_MARQUEE);
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -23,6 +29,12 @@ export default function Header() {
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data.data ?? [])).catch(() => {});
+    api.get("/config")
+      .then((r) => {
+        const texts: string[] = r.data?.data?.marqueeTexts;
+        if (texts && texts.length > 0) setMarqueeTexts(texts);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -41,9 +53,16 @@ export default function Header() {
 
   return (
     <>
-      {/* ── Promo top bar ── */}
-      <div className="bg-green-700 text-white text-sm px-2 py-2 text-center font-medium tracking-wide">
-        🚚 Free delivery on orders above ৳999 &nbsp;|&nbsp; Cash on Delivery available across Bangladesh
+      {/* ── Marquee top bar ── */}
+      <div className="bg-green-700 text-white text-sm py-2 overflow-hidden">
+        <div className="flex whitespace-nowrap animate-marquee">
+          {[...marqueeTexts, ...marqueeTexts].map((text, i) => (
+            <span key={i} className="inline-block px-10 font-medium tracking-wide">
+              {text}
+              <span className="mx-8 opacity-50">•</span>
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* ── Main header ── */}

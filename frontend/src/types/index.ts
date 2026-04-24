@@ -16,6 +16,10 @@ export interface Product {
   title: string;
   slug: string;
   description: string;
+  shortDescription?: string;
+  howToUse?: string;
+  ingredients?: string;
+  sku?: string;
   category: string;
   images: ProductImage[];
   basePrice: number;
@@ -74,10 +78,11 @@ export interface Review {
   _id: string;
   productSlug: string;
   isVerifiedPurchase: boolean;
-  orderId: string;
+  orderId?: string;
   customerName: string;
   rating: number;
   comment: string;
+  imageUrl?: string;
   status: "pending" | "approved" | "rejected";
   createdAt: string;
 }

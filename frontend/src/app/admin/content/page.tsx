@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { CldUploadWidget } from "next-cloudinary";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
-import { Plus, Pencil, Trash2, X, Loader2, Check, ImagePlus, Eye, EyeOff, Save } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, Check, ImagePlus, Eye, EyeOff, Save, GripVertical } from "lucide-react";
 import type { HeroSlide, PromoPanel, PromoPanelItem } from "@/types";
 
 // ─── Hero Slides ────────────────────────────────────────────────────────────
@@ -60,6 +60,14 @@ export default function AdminContentPage() {
   const [promoRight, setPromoRight] = useState<PromoPanelItem>(emptyPanelItem());
   const [loadingPromo, setLoadingPromo] = useState(true);
   const [savingPromo, setSavingPromo] = useState(false);
+
+  // Marquee texts state
+  const [marqueeTexts, setMarqueeTexts] = useState<string[]>([
+    '🚚 Free delivery on orders above ৳999',
+    'Cash on Delivery available across Bangladesh',
+  ]);
+  const [newMarqueeText, setNewMarqueeText] = useState('');
+  const [savingMarquee, setSavingMarquee] = useState(false);
 
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
@@ -166,6 +174,40 @@ export default function AdminContentPage() {
   }, []);
 
   useEffect(() => { fetchPromoPanel(); }, [fetchPromoPanel]);
+
+  // Load marquee texts from config
+  useEffect(() => {
+    api.get('/config')
+      .then((r) => {
+        const texts: string[] = r.data?.data?.marqueeTexts;
+        if (texts && texts.length > 0) setMarqueeTexts(texts);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveMarquee = async () => {
+    setSavingMarquee(true);
+    try {
+      await api.put('/admin/config', { marqueeTexts });
+      toast.success('Marquee texts saved');
+    } catch {
+      toast.error('Failed to save marquee texts');
+    } finally {
+      setSavingMarquee(false);
+    }
+  };
+
+  const addMarqueeText = () => {
+    if (!newMarqueeText.trim()) return;
+    setMarqueeTexts((t) => [...t, newMarqueeText.trim()]);
+    setNewMarqueeText('');
+  };
+
+  const removeMarqueeText = (i: number) =>
+    setMarqueeTexts((t) => t.filter((_, idx) => idx !== i));
+
+  const updateMarqueeText = (i: number, val: string) =>
+    setMarqueeTexts((t) => t.map((item, idx) => (idx === i ? val : item)));
 
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,6 +369,65 @@ export default function AdminContentPage() {
             </div>
           </form>
         )}
+      </div>
+
+      {/* ── Marquee Texts ───────────────────────────────────────────── */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Header Marquee Texts</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Texts that scroll in the top announcement bar — one per line
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+          {marqueeTexts.map((text, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <GripVertical size={16} className="text-gray-300 shrink-0" />
+              <input
+                value={text}
+                onChange={(e) => updateMarqueeText(i, e.target.value)}
+                className={inputCls}
+              />
+              <button
+                type="button"
+                onClick={() => removeMarqueeText(i)}
+                className="text-red-400 hover:text-red-600 shrink-0"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+
+          {/* Add new text */}
+          <div className="flex gap-2 pt-2 border-t border-gray-100">
+            <input
+              value={newMarqueeText}
+              onChange={(e) => setNewMarqueeText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addMarqueeText())}
+              placeholder="Add new announcement text…"
+              className={inputCls}
+            />
+            <button
+              type="button"
+              onClick={addMarqueeText}
+              className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors shrink-0 border border-indigo-200"
+            >
+              <Plus size={14} /> Add
+            </button>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={handleSaveMarquee}
+              disabled={savingMarquee}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            >
+              {savingMarquee ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save Marquee
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ── Hero Slide Modal ─────────────────────────────────────────── */}

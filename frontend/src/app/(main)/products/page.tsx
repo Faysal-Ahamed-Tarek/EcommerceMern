@@ -49,7 +49,7 @@ export default function ProductsPage() {
 
       const res = await api.get(`/products?${params}`);
       setProducts(res.data.data ?? []);
-      setTotal(res.data.pagination?.total ?? 0);
+      setTotal(res.data.total ?? 0);
     } catch {
       setProducts([]);
     } finally {

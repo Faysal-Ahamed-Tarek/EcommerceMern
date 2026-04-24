@@ -23,6 +23,10 @@ interface VariantRow {
 interface FormData {
   title: string;
   description: string;
+  shortDescription: string;
+  howToUse: string;
+  ingredients: string;
+  sku: string;
   category: string;
   hasVariants: boolean;
   basePrice: string;
@@ -51,6 +55,10 @@ const emptyVariantRow = (): VariantRow => ({
 const empty = (): FormData => ({
   title: "",
   description: "",
+  shortDescription: "",
+  howToUse: "",
+  ingredients: "",
+  sku: "",
   category: "",
   hasVariants: false,
   basePrice: "",
@@ -68,9 +76,17 @@ const empty = (): FormData => ({
   canonicalUrl: "",
 });
 
+function generateSku() {
+  return "PROD-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 const fromProduct = (p: Product): FormData => ({
   title: p.title,
   description: p.description,
+  shortDescription: p.shortDescription ?? "",
+  howToUse: p.howToUse ?? "",
+  ingredients: p.ingredients ?? "",
+  sku: p.sku ?? "",
   category: p.category,
   hasVariants: (p.variants ?? []).length > 0,
   basePrice: String(p.basePrice),
@@ -186,6 +202,10 @@ export default function ProductForm({ initialProduct }: Props) {
       const payload = {
         title: form.title,
         description: safeDescription,
+        shortDescription: form.shortDescription || undefined,
+        howToUse: form.howToUse || undefined,
+        ingredients: form.ingredients || undefined,
+        sku: form.sku || undefined,
         category: form.category,
         basePrice: form.hasVariants ? 0 : Number(form.basePrice),
         DiscountPrice: form.hasVariants ? 0 : Number(form.DiscountPrice),
@@ -299,14 +319,71 @@ export default function ProductForm({ initialProduct }: Props) {
         </div>
       </Section>
 
+      {/* ── Short Description ── */}
+      <Section title="Short Description">
+        <Field label="Short Description" required>
+          <textarea
+            required
+            rows={2}
+            maxLength={300}
+            value={form.shortDescription}
+            onChange={(e) => setForm((f) => ({ ...f, shortDescription: e.target.value }))}
+            placeholder="A brief 1-2 sentence description shown on the product page below the price"
+            className={`${inputCls} resize-none`}
+          />
+          <p className="text-xs text-gray-400 mt-1">{form.shortDescription.length}/300</p>
+        </Field>
+      </Section>
+
       {/* ── Description ── */}
-      <Section title="Description">
+      <Section title="Full Description">
         <RichTextEditor
           value={form.description}
           onChange={(html) => setForm((f) => ({ ...f, description: html }))}
           placeholder="Enter product description. You can paste formatted text directly."
           minHeight="200px"
         />
+      </Section>
+
+      {/* ── How to Use & Ingredients ── */}
+      <Section title="How to Use & Ingredients (optional)">
+        <Field label="How to Use">
+          <RichTextEditor
+            value={form.howToUse}
+            onChange={(html) => setForm((f) => ({ ...f, howToUse: html }))}
+            placeholder="Usage instructions — supports rich text"
+            minHeight="120px"
+          />
+        </Field>
+        <Field label="Ingredients">
+          <RichTextEditor
+            value={form.ingredients}
+            onChange={(html) => setForm((f) => ({ ...f, ingredients: html }))}
+            placeholder="Ingredient list — supports rich text"
+            minHeight="120px"
+          />
+        </Field>
+      </Section>
+
+      {/* ── SKU ── */}
+      <Section title="SKU">
+        <div className="flex items-end gap-2">
+          <Field label="SKU (auto-generated if blank)">
+            <input
+              value={form.sku}
+              onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+              placeholder="PROD-ABC123"
+              className={inputCls}
+            />
+          </Field>
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, sku: generateSku() }))}
+            className="flex items-center gap-1.5 text-xs bg-indigo-50 text-indigo-700 px-3 py-2.5 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 font-medium whitespace-nowrap mb-0.5"
+          >
+            Auto-generate
+          </button>
+        </div>
       </Section>
 
       {/* ── Pricing & Variants ── */}

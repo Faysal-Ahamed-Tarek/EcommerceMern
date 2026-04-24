@@ -5,7 +5,9 @@ import { api } from "@/lib/api";
 import toast from "react-hot-toast";
 import { Plus, Pencil, Trash2, X, Loader2, Check, ImagePlus } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
-import type { Category } from "@/types";
+import type { Category as BaseCategory } from "@/types";
+
+type Category = BaseCategory & { productCount?: number };
 
 interface CategoryForm {
   name: string;
@@ -225,13 +227,14 @@ export default function AdminCategoriesPage() {
                 <th className="px-4 py-3">Image</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Slug</th>
+                <th className="px-4 py-3">Products</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {categories.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="text-center py-12 text-gray-400">
+                  <td colSpan={5} className="text-center py-12 text-gray-400">
                     No categories yet
                   </td>
                 </tr>
@@ -254,6 +257,11 @@ export default function AdminCategoriesPage() {
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
                   <td className="px-4 py-3 text-gray-500 font-mono text-xs">{c.slug}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      {c.productCount ?? 0}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button

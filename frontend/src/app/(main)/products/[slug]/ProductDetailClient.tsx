@@ -1,17 +1,53 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SafeImage from "@/components/ui/SafeImage";
-import { ShoppingCart, Zap, MessageCircle, ChevronRight, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Zap, MessageCircle, ChevronRight, Minus, Plus, Star, Loader2, ImagePlus, X } from "lucide-react";
 import DOMPurify from "dompurify";
 import { useCartStore } from "@/store/cartStore";
-import type { Product, ProductVariant } from "@/types";
+import { api } from "@/lib/api";
+import { CldUploadWidget } from "next-cloudinary";
+import type { Product, ProductVariant, Review } from "@/types";
 import toast from "react-hot-toast";
 
 interface Props {
   product: Product;
+}
+
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+function sanitize(html: string) {
+  if (typeof window === "undefined") return html;
+  return DOMPurify.sanitize(html);
+}
+
+function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange?.(n)}
+          onMouseEnter={() => onChange && setHover(n)}
+          onMouseLeave={() => onChange && setHover(0)}
+          className="transition-transform hover:scale-110"
+        >
+          <Star
+            size={20}
+            className={
+              n <= (hover || value)
+                ? "fill-amber-400 text-amber-400"
+                : "text-gray-300"
+            }
+          />
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function ProductDetailClient({ product }: Props) {
@@ -20,6 +56,26 @@ export default function ProductDetailClient({ product }: Props) {
 
   const [mainImage, setMainImage] = useState(product.images[0]?.cloudinaryUrl ?? "");
   const [qty, setQty] = useState(1);
+
+  // Tabs for How to Use / Ingredients
+  const firstTab = product.howToUse ? "howToUse" : product.ingredients ? "ingredients" : null;
+  const [activeTab, setActiveTab] = useState<"howToUse" | "ingredients">(firstTab ?? "howToUse");
+
+  // Reviews
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewForm, setReviewForm] = useState({
+    customerName: "", rating: 5, comment: "", imageUrl: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      const res = await api.get(`/reviews/product/${product.slug}`);
+      setReviews(res.data.data ?? []);
+    } catch { /* silently ignore */ }
+  }, [product.slug]);
+
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
   // ─── Variant grouping ─────────────────────────────────────────────────────
   const variantGroups = useMemo(() => {
@@ -75,10 +131,28 @@ export default function ProductDetailClient({ product }: Props) {
       ? Math.round(((baseDisplayPrice - displayPrice) / baseDisplayPrice) * 100)
       : 0;
 
-  const sanitizedDesc =
-    typeof window !== "undefined"
-      ? DOMPurify.sanitize(product.description)
-      : product.description;
+  const sanitizedDesc = sanitize(product.description);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewForm.customerName.trim() || !reviewForm.comment.trim()) return;
+    setSubmitting(true);
+    try {
+      await api.post("/reviews", {
+        productSlug: product.slug,
+        customerName: reviewForm.customerName,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+        imageUrl: reviewForm.imageUrl || undefined,
+      });
+      toast.success("Review submitted! It will appear after approval.");
+      setReviewForm({ customerName: "", rating: 5, comment: "", imageUrl: "" });
+    } catch {
+      toast.error("Failed to submit review");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // ─── Cart ──────────────────────────────────────────────────────────────────
   const variantLabel = hasVariants
@@ -122,8 +196,8 @@ export default function ProductDetailClient({ product }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
 
-        {/* ── Left: Images ── */}
-        <div className="space-y-3">
+        {/* ── Left: Images (sticky on scroll) ── */}
+        <div className="space-y-3 lg:sticky lg:top-28 lg:self-start">
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
             <SafeImage
               src={mainImage}
@@ -197,6 +271,59 @@ export default function ProductDetailClient({ product }: Props) {
             </div>
             <p className="text-xs text-green-700 mt-1 font-medium">💵 Payment: Cash on Delivery</p>
           </div>
+
+          {/* Short Description */}
+          {product.shortDescription && (
+            <p className="text-gray-700 text-sm leading-relaxed py-2">
+              {product.shortDescription}
+            </p>
+          )}
+
+          {/* ── Tabs: How to Use / Ingredients ── */}
+          {(product.howToUse || product.ingredients) && (
+            <div className="border border-gray-200 rounded-2xl overflow-hidden">
+              <div className="flex border-b border-gray-200 bg-gray-50">
+                {product.howToUse && (
+                  <button
+                    onClick={() => setActiveTab("howToUse")}
+                    className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                      activeTab === "howToUse"
+                        ? "bg-white text-green-700 border-b-2 border-green-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    How to Use
+                  </button>
+                )}
+                {product.ingredients && (
+                  <button
+                    onClick={() => setActiveTab("ingredients")}
+                    className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                      activeTab === "ingredients"
+                        ? "bg-white text-green-700 border-b-2 border-green-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Ingredients
+                  </button>
+                )}
+              </div>
+              <div className="p-4">
+                {activeTab === "howToUse" && product.howToUse && (
+                  <div
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: sanitize(product.howToUse) }}
+                  />
+                )}
+                {activeTab === "ingredients" && product.ingredients && (
+                  <div
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: sanitize(product.ingredients) }}
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── Variant Selectors ── */}
           {variantGroups.map(([type, options], gi) => (
@@ -278,6 +405,11 @@ export default function ProductDetailClient({ product }: Props) {
             Order via WhatsApp
           </a>
 
+          {/* SKU */}
+          {product.sku && (
+            <p className="text-xs text-gray-400 font-mono">SKU: {product.sku}</p>
+          )}
+
           {/* Quick trust badges */}
           <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-100">
             {[
@@ -296,15 +428,155 @@ export default function ProductDetailClient({ product }: Props) {
       </div>
 
       {/* Product Description */}
-      <div className="mt-12 ">
+      <div className="mt-12">
         <div className="flex items-center gap-3 mb-5">
           <span className="block w-1 h-6 bg-green-600 rounded-full" />
-          <h2 className="text-xl sm:text-xl font-bold text-gray-900">Product Description</h2>
+          <h2 className="text-xl font-bold text-gray-900">Product Description</h2>
         </div>
         <div
           className="prose prose-md max-w-none text-gray-700 prose-headings:text-gray-900 prose-a:text-green-600"
           dangerouslySetInnerHTML={{ __html: sanitizedDesc }}
         />
+      </div>
+
+      {/* ── Reviews ── */}
+      <div className="mt-14">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="block w-1 h-6 bg-green-600 rounded-full" />
+          <h2 className="text-xl font-bold text-gray-900">
+            Customer Reviews
+            {reviews.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-gray-500">({reviews.length})</span>
+            )}
+          </h2>
+        </div>
+
+        {/* Approved reviews list */}
+        {reviews.length > 0 ? (
+          <div className="space-y-4 mb-10">
+            {reviews.map((r) => (
+              <div key={r._id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{r.customerName}</p>
+                    <StarRating value={r.rating} />
+                  </div>
+                  <p className="text-xs text-gray-400 shrink-0">
+                    {new Date(r.createdAt).toLocaleDateString("en-GB")}
+                  </p>
+                </div>
+                <p className="text-gray-700 text-sm leading-relaxed">{r.comment}</p>
+                {r.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={r.imageUrl}
+                    alt="Review"
+                    className="mt-3 w-24 h-24 object-cover rounded-xl border border-gray-200"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-sm mb-8">No reviews yet. Be the first to review!</p>
+        )}
+
+        {/* Review submission form */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-6">
+          <h3 className="font-bold text-gray-900 mb-4 text-base">Write a Review</h3>
+          <form onSubmit={handleReviewSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Your Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  value={reviewForm.customerName}
+                  onChange={(e) => setReviewForm((f) => ({ ...f, customerName: e.target.value }))}
+                  placeholder="John Doe"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Rating <span className="text-red-500">*</span></label>
+                <div className="py-1.5">
+                  <StarRating
+                    value={reviewForm.rating}
+                    onChange={(v) => setReviewForm((f) => ({ ...f, rating: v }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Comment <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={reviewForm.comment}
+                onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
+                placeholder="Share your experience with this product…"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+              />
+            </div>
+
+            {/* Image upload (optional) */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Photo (optional)
+              </label>
+              {reviewForm.imageUrl ? (
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={reviewForm.imageUrl}
+                    alt="Review"
+                    className="w-16 h-16 object-cover rounded-xl border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setReviewForm((f) => ({ ...f, imageUrl: "" }))}
+                    className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                  >
+                    <X size={12} /> Remove
+                  </button>
+                </div>
+              ) : UPLOAD_PRESET ? (
+                <CldUploadWidget
+                  uploadPreset={UPLOAD_PRESET}
+                  onSuccess={(result: unknown) => {
+                    const info = (result as { info?: { secure_url?: string } })?.info;
+                    if (info?.secure_url)
+                      setReviewForm((f) => ({ ...f, imageUrl: info.secure_url! }));
+                  }}
+                  options={{ resourceType: "image", multiple: false }}
+                >
+                  {({ open }) => (
+                    <button
+                      type="button"
+                      onClick={() => open()}
+                      className="flex items-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-500 hover:border-green-400 hover:text-green-600 transition-colors"
+                    >
+                      <ImagePlus size={15} /> Upload Photo
+                    </button>
+                  )}
+                </CldUploadWidget>
+              ) : null}
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-60"
+            >
+              {submitting && <Loader2 size={14} className="animate-spin" />}
+              Submit Review
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

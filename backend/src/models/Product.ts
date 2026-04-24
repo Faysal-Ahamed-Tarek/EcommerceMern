@@ -17,6 +17,10 @@ export interface IProduct extends Document {
   title: string;
   slug: string;
   description: string;
+  shortDescription?: string;
+  howToUse?: string;
+  ingredients?: string;
+  sku?: string;
   category: string;
   images: IProductImage[];
   variants: IProductVariant[];
@@ -64,6 +68,10 @@ const ProductSchema = new Schema<IProduct>(
     isFeatured: { type: Boolean, default: false },
     isTopSelling: { type: Boolean, default: false },
     status: { type: String, enum: ['draft', 'published'], default: 'draft' },
+    shortDescription: { type: String },
+    howToUse: { type: String },
+    ingredients: { type: String },
+    sku: { type: String },
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
