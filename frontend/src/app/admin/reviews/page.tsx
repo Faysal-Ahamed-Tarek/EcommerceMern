@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
-import { Loader2, CheckCircle, XCircle, Trash2, Star } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Trash2, Star, Pencil, Plus, X } from "lucide-react";
 import type { Review } from "@/types";
 
 type ReviewStatus = Review["status"];
@@ -14,12 +14,165 @@ const STATUS_COLORS: Record<ReviewStatus, string> = {
   rejected: "bg-red-100 text-red-700",
 };
 
+function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          onMouseEnter={() => setHover(n)}
+          onMouseLeave={() => setHover(0)}
+        >
+          <Star
+            size={20}
+            className={n <= (hover || value) ? "fill-amber-400 text-amber-400" : "text-gray-300"}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type ReviewFormData = {
+  productSlug: string;
+  customerName: string;
+  rating: number;
+  comment: string;
+  imageUrl: string;
+  status: ReviewStatus;
+};
+
+function ReviewFormModal({
+  title,
+  initial,
+  onSave,
+  onClose,
+  saving,
+}: {
+  title: string;
+  initial: ReviewFormData;
+  onSave: (data: ReviewFormData) => void;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [form, setForm] = useState<ReviewFormData>(initial);
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-900 text-base">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Product Slug <span className="text-red-500">*</span></label>
+            <input
+              value={form.productSlug}
+              onChange={(e) => setForm((f) => ({ ...f, productSlug: e.target.value }))}
+              placeholder="e.g. organic-face-cream"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Customer Name <span className="text-red-500">*</span></label>
+            <input
+              value={form.customerName}
+              onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))}
+              placeholder="John Doe"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Rating <span className="text-red-500">*</span></label>
+            <StarPicker value={form.rating} onChange={(v) => setForm((f) => ({ ...f, rating: v }))} />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Comment <span className="text-red-500">*</span></label>
+            <textarea
+              rows={4}
+              value={form.comment}
+              onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))}
+              placeholder="Review text…"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Image URL (optional)</label>
+            <input
+              value={form.imageUrl}
+              onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+              placeholder="https://..."
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as ReviewStatus }))}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+            >
+              <option value="approved">Approved</option>
+              <option value="pending">Pending</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => onSave(form)}
+              className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-60"
+            >
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const EMPTY_FORM: ReviewFormData = {
+  productSlug: "", customerName: "", rating: 5, comment: "", imageUrl: "", status: "approved",
+};
+
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"all" | ReviewStatus>("pending");
   const [acting, setActing] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [editTarget, setEditTarget] = useState<Review | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
@@ -60,11 +213,54 @@ export default function AdminReviewsPage() {
     }
   };
 
+  const handleEdit = async (data: ReviewFormData) => {
+    if (!editTarget) return;
+    setSaving(true);
+    try {
+      const res = await api.put(`/reviews/${editTarget._id}`, data);
+      setReviews((prev) => prev.map((r) => r._id === editTarget._id ? { ...r, ...res.data.data } : r));
+      toast.success("Review updated");
+      setEditTarget(null);
+    } catch {
+      toast.error("Failed to update review");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreate = async (data: ReviewFormData) => {
+    if (!data.productSlug.trim() || !data.customerName.trim() || !data.comment.trim()) {
+      toast.error("Product slug, name, and comment are required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await api.post("/admin/reviews", data);
+      toast.success("Review created");
+      setCreateOpen(false);
+      if (tab === "all" || tab === res.data.data.status) {
+        setReviews((prev) => [res.data.data, ...prev]);
+      }
+    } catch {
+      toast.error("Failed to create review");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Reviews</h1>
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+        <h1 className="text-2xl font-bold text-gray-900">Reviews</h1>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors"
+        >
+          <Plus size={16} /> Add Review
+        </button>
+      </div>
 
-      {/* Tabs */}
+      {/* Status tabs */}
       <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
         {(["pending", "approved", "rejected", "all"] as const).map((s) => (
           <button
@@ -148,6 +344,15 @@ export default function AdminReviewsPage() {
                         </button>
                       )}
                       <button
+                        onClick={() =>
+                          setEditTarget(r)
+                        }
+                        title="Edit"
+                        className="text-blue-500 hover:text-blue-700 transition-colors"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
                         onClick={() => setDeleteId(r._id)}
                         title="Delete"
                         className="text-red-500 hover:text-red-700 transition-colors"
@@ -175,6 +380,35 @@ export default function AdminReviewsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit modal */}
+      {editTarget && (
+        <ReviewFormModal
+          title="Edit Review"
+          initial={{
+            productSlug: editTarget.productSlug,
+            customerName: editTarget.customerName,
+            rating: editTarget.rating,
+            comment: editTarget.comment,
+            imageUrl: editTarget.imageUrl ?? "",
+            status: editTarget.status,
+          }}
+          onSave={handleEdit}
+          onClose={() => setEditTarget(null)}
+          saving={saving}
+        />
+      )}
+
+      {/* Create modal */}
+      {createOpen && (
+        <ReviewFormModal
+          title="Add Review"
+          initial={EMPTY_FORM}
+          onSave={handleCreate}
+          onClose={() => setCreateOpen(false)}
+          saving={saving}
+        />
       )}
     </div>
   );

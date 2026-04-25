@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, X, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { Search, SlidersHorizontal, X, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import ProductCard from "@/components/product/ProductCard";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { Product, Category, ApiResponse } from "@/types";
+import type { Product, Category } from "@/types";
 
 const SORT_OPTIONS = [
   { value: "latest", label: "Latest" },
@@ -15,8 +15,11 @@ const SORT_OPTIONS = [
   { value: "price_desc", label: "Price: High to Low" },
 ];
 
+const LIMIT = 16;
+
+type FilterType = "" | "featured" | "topSelling";
+
 export default function ProductsPage() {
-  const router = useRouter();
   const sp = useSearchParams();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,6 +27,7 @@ export default function ProductsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
 
   const [search, setSearch] = useState(sp.get("search") ?? "");
@@ -31,43 +35,61 @@ export default function ProductsPage() {
   const [sort, setSort] = useState("latest");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [filterType, setFilterType] = useState<FilterType>("");
 
   const debouncedSearch = useDebounce(search, 400);
-  const LIMIT = 12;
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
+  // Track whether we should append (load more) or replace (filter change)
+  const isLoadMore = useRef(false);
+
+  const fetchProducts = useCallback(async (pageNum: number, append: boolean) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("page", String(page));
+      params.set("page", String(pageNum));
       params.set("limit", String(LIMIT));
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (category) params.set("category", category);
       if (sort) params.set("sort", sort);
       if (minPrice) params.set("minPrice", minPrice);
       if (maxPrice) params.set("maxPrice", maxPrice);
+      if (filterType === "featured") params.set("featured", "true");
+      if (filterType === "topSelling") params.set("topSelling", "true");
 
       const res = await api.get(`/products?${params}`);
-      setProducts(res.data.data ?? []);
-      setTotal(res.data.total ?? 0);
-    } catch {
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, debouncedSearch, category, sort, minPrice, maxPrice]);
+      const data: Product[] = res.data.data ?? [];
+      const newTotal: number = res.data.total ?? 0;
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+      setTotal(newTotal);
+      setProducts((prev) => (append ? [...prev, ...data] : data));
+    } catch {
+      if (!append) setProducts([]);
+    } finally {
+      if (append) setLoadingMore(false);
+      else setLoading(false);
+    }
+  }, [debouncedSearch, category, sort, minPrice, maxPrice, filterType]);
+
+  // On filter change: reset page and products, fetch fresh
+  useEffect(() => {
+    isLoadMore.current = false;
+    setPage(1);
+    fetchProducts(1, false);
+  }, [fetchProducts]);
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data.data ?? [])).catch(() => {});
   }, []);
 
-  // Reset page on filter change
-  useEffect(() => { setPage(1); }, [debouncedSearch, category, sort, minPrice, maxPrice]);
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchProducts(nextPage, true);
+  };
 
-  const totalPages = Math.ceil(total / LIMIT);
-  const hasActiveFilter = !!(category || minPrice || maxPrice || debouncedSearch);
+  const hasMore = products.length < total;
+  const hasActiveFilter = !!(category || minPrice || maxPrice || debouncedSearch || filterType);
 
   const clearFilters = () => {
     setSearch("");
@@ -75,6 +97,7 @@ export default function ProductsPage() {
     setMinPrice("");
     setMaxPrice("");
     setSort("latest");
+    setFilterType("");
   };
 
   return (
@@ -97,6 +120,8 @@ export default function ProductsPage() {
             setMinPrice={setMinPrice}
             maxPrice={maxPrice}
             setMaxPrice={setMaxPrice}
+            filterType={filterType}
+            setFilterType={setFilterType}
             hasActiveFilter={hasActiveFilter}
             clearFilters={clearFilters}
           />
@@ -150,16 +175,20 @@ export default function ProductsPage() {
                 setMinPrice={setMinPrice}
                 maxPrice={maxPrice}
                 setMaxPrice={setMaxPrice}
+                filterType={filterType}
+                setFilterType={setFilterType}
                 hasActiveFilter={hasActiveFilter}
                 clearFilters={clearFilters}
               />
             </div>
           )}
 
-          {/* Result count */}
-          <p className="text-sm text-gray-500 mb-4 font-medium">
-            {loading ? "Loading…" : `${total} product${total !== 1 ? "s" : ""} found`}
-          </p>
+          {/* Result count — only show when searching/filtering */}
+          {hasActiveFilter && !loading && (
+            <p className="text-sm text-gray-500 mb-4 font-medium">
+              {total} product{total !== 1 ? "s" : ""} found
+            </p>
+          )}
 
           {/* Products grid */}
           {loading ? (
@@ -180,45 +209,27 @@ export default function ProductsPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {products.map((p) => <ProductCard key={p._id} product={p} />)}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-10">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-medium disabled:opacity-40 hover:border-green-400 transition-colors"
-              >
-                ← Prev
-              </button>
-              <div className="flex gap-1.5">
-                {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setPage(p)}
-                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-colors ${
-                        p === page ? "bg-green-600 text-white" : "border-2 border-gray-200 hover:border-green-400 text-gray-700"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                {products.map((p) => <ProductCard key={p._id} product={p} />)}
               </div>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-medium disabled:opacity-40 hover:border-green-400 transition-colors"
-              >
-                Next →
-              </button>
-            </div>
+
+              {hasMore && (
+                <div className="flex justify-center mt-10">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="flex items-center gap-2 border-2 border-green-600 text-green-700 px-8 py-3 rounded-2xl font-bold hover:bg-green-50 transition-colors disabled:opacity-60 text-sm"
+                  >
+                    {loadingMore ? (
+                      <><Loader2 size={16} className="animate-spin" /> Loading…</>
+                    ) : (
+                      "More Products"
+                    )}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -230,12 +241,14 @@ export default function ProductsPage() {
 function FilterPanel({
   categories, category, setCategory,
   minPrice, setMinPrice, maxPrice, setMaxPrice,
+  filterType, setFilterType,
   hasActiveFilter, clearFilters,
 }: {
   categories: Category[];
   category: string; setCategory: (v: string) => void;
   minPrice: string; setMinPrice: (v: string) => void;
   maxPrice: string; setMaxPrice: (v: string) => void;
+  filterType: FilterType; setFilterType: (v: FilterType) => void;
   hasActiveFilter: boolean; clearFilters: () => void;
 }) {
   return (
@@ -265,16 +278,21 @@ function FilterPanel({
             <span className="text-sm text-gray-700 group-hover:text-green-700">All Categories</span>
           </label>
           {categories.map((cat) => (
-            <label key={cat._id} className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                name="cat"
-                value={cat.slug}
-                checked={category === cat.slug}
-                onChange={() => setCategory(cat.slug)}
-                className="accent-green-600"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-green-700">{cat.name}</span>
+            <label key={cat._id} className="flex items-center justify-between gap-2 cursor-pointer group">
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="cat"
+                  value={cat.slug}
+                  checked={category === cat.slug}
+                  onChange={() => setCategory(cat.slug)}
+                  className="accent-green-600"
+                />
+                <span className="text-sm text-gray-700 group-hover:text-green-700">{cat.name}</span>
+              </div>
+              {cat.productCount !== undefined && cat.productCount > 0 && (
+                <span className="text-xs text-gray-400 font-medium shrink-0">({cat.productCount})</span>
+              )}
             </label>
           ))}
         </div>

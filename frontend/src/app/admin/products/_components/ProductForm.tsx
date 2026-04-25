@@ -36,6 +36,7 @@ interface FormData {
   isFeatured: boolean;
   isTopSelling: boolean;
   status: "draft" | "published";
+  order: string;
   images: ProductImage[];
   metaTitle: string;
   metaDescription: string;
@@ -68,6 +69,7 @@ const empty = (): FormData => ({
   isFeatured: false,
   isTopSelling: false,
   status: "draft",
+  order: "",
   images: [],
   metaTitle: "",
   metaDescription: "",
@@ -102,6 +104,7 @@ const fromProduct = (p: Product): FormData => ({
   isFeatured: p.isFeatured,
   isTopSelling: p.isTopSelling,
   status: p.status,
+  order: p.order !== undefined ? String(p.order) : "",
   images: p.images,
   metaTitle: p.metaTitle ?? "",
   metaDescription: p.metaDescription ?? "",
@@ -213,6 +216,7 @@ export default function ProductForm({ initialProduct }: Props) {
         isFeatured: form.isFeatured,
         isTopSelling: form.isTopSelling,
         status: form.status,
+        order: form.order !== "" ? Number(form.order) : undefined,
         images: form.images,
         variants: form.hasVariants
           ? form.variants.map((v) => ({
@@ -281,6 +285,16 @@ export default function ProductForm({ initialProduct }: Props) {
               min="0"
               value={form.totalStock}
               onChange={(e) => setForm((f) => ({ ...f, totalStock: e.target.value }))}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Display Order">
+            <input
+              type="number"
+              min="1"
+              placeholder="e.g. 1 (lower = shown first)"
+              value={form.order}
+              onChange={(e) => setForm((f) => ({ ...f, order: e.target.value }))}
               className={inputCls}
             />
           </Field>

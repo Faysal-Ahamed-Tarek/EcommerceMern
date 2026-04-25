@@ -31,6 +31,7 @@ export interface Product {
   isFeatured: boolean;
   isTopSelling: boolean;
   status: "draft" | "published";
+  order?: number;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
@@ -45,6 +46,7 @@ export interface Category {
   name: string;
   slug: string;
   image?: string;
+  productCount?: number;
 }
 
 export interface OrderItem {

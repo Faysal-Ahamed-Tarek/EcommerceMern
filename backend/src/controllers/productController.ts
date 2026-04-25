@@ -22,18 +22,32 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
       filter.basePrice = priceFilter;
     }
 
-    const sortMap: Record<string, Record<string, 1 | -1>> = {
+    const sortMap: Record<string, Record<string, number>> = {
       latest: { createdAt: -1 },
       price_asc: { basePrice: 1 },
       price_desc: { basePrice: -1 },
     };
-    const sortOption = sortMap[sort as string] ?? { createdAt: -1 };
+    const secondarySort = sortMap[sort as string] ?? { createdAt: -1 };
 
     const skip = (Number(page) - 1) * Number(limit);
-    const [products, total] = await Promise.all([
-      Product.find(filter).sort(sortOption).skip(skip).limit(Number(limit)).lean(),
-      Product.countDocuments(filter),
+
+    const basePipeline = [
+      { $match: filter },
+      { $addFields: { _ord: { $ifNull: ['$order', 999999] } } },
+      { $sort: { _ord: 1, ...secondarySort } },
+    ];
+
+    const [products, countResult] = await Promise.all([
+      Product.aggregate([
+        ...basePipeline,
+        { $skip: skip },
+        { $limit: Number(limit) },
+        { $project: { _ord: 0 } },
+      ]),
+      Product.aggregate([...basePipeline, { $count: 'total' }]),
     ]);
+
+    const total = (countResult[0]?.total as number) ?? 0;
 
     res.json({ success: true, data: products, total, page: Number(page), limit: Number(limit) });
   } catch (err) {

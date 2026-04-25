@@ -5,6 +5,7 @@ import {
   getPendingReviews,
   updateReviewStatus,
   deleteReview,
+  updateReview,
 } from '../controllers/reviewController';
 import { protect } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -16,6 +17,7 @@ router.post('/', validate(createReviewSchema), createReview);
 router.get('/product/:slug', getApprovedReviews);
 router.get('/pending', protect, getPendingReviews);
 router.patch('/:id/status', protect, updateReviewStatus);
+router.put('/:id', protect, updateReview);
 router.delete('/:id', protect, deleteReview);
 
 export default router;

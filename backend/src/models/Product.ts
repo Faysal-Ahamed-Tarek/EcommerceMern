@@ -32,6 +32,7 @@ export interface IProduct extends Document {
   isFeatured: boolean;
   isTopSelling: boolean;
   status: 'draft' | 'published';
+  order?: number;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
@@ -68,6 +69,7 @@ const ProductSchema = new Schema<IProduct>(
     isFeatured: { type: Boolean, default: false },
     isTopSelling: { type: Boolean, default: false },
     status: { type: String, enum: ['draft', 'published'], default: 'draft' },
+    order: { type: Number },
     shortDescription: { type: String },
     howToUse: { type: String },
     ingredients: { type: String },
