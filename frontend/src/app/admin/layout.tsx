@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, Tag, ShoppingBag, Star, FileText, Palette, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ShoppingBag, Star, Palette, LogOut, ChevronDown, ChevronRight, Files } from "lucide-react";
+
+const PAGES_LINKS = [
+  { label: "Home",                href: "/admin/pages/home" },
+  { label: "Privacy Policy",      href: "/admin/pages/privacy-policy" },
+  { label: "About Us",            href: "/admin/pages/about" },
+  { label: "Terms & Conditions",  href: "/admin/pages/terms" },
+  { label: "Header",              href: "/admin/pages/header" },
+  { label: "Footer",              href: "/admin/pages/footer" },
+];
 
 const NAV_LINKS = [
   { label: "Dashboard",  href: "/admin/dashboard",  icon: LayoutDashboard },
@@ -11,7 +20,6 @@ const NAV_LINKS = [
   { label: "Categories", href: "/admin/categories", icon: Tag },
   { label: "Orders",     href: "/admin/orders",     icon: ShoppingBag },
   { label: "Reviews",    href: "/admin/reviews",    icon: Star },
-  { label: "Content",    href: "/admin/content",    icon: FileText },
   { label: "Theme",      href: "/admin/theme",      icon: Palette },
 ];
 
@@ -21,11 +29,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === "/admin/login";
   const [checking, setChecking] = useState(true);
   const [authed, setAuthed] = useState(false);
+  const isPagesActive = pathname.startsWith("/admin/pages");
+  const [pagesOpen, setPagesOpen] = useState(isPagesActive);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (isLoginPage) {
-      // If already logged in, skip the login page
       if (token) router.replace("/admin/dashboard");
       setChecking(false);
       return;
@@ -38,19 +47,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setChecking(false);
   }, [isLoginPage, router]);
 
+  useEffect(() => {
+    if (isPagesActive) setPagesOpen(true);
+  }, [isPagesActive]);
+
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
     setAuthed(false);
     router.replace("/admin/login");
   };
 
-  // Blank screen while checking — no flash of wrong content
   if (checking) return null;
-
-  // Login page — no sidebar, no header/footer
   if (isLoginPage) return <>{children}</>;
-
-  // Not authenticated (briefly, before redirect fires)
   if (!authed) return null;
 
   return (
@@ -75,6 +83,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {label}
             </Link>
           ))}
+
+          {/* Pages dropdown */}
+          <div>
+            <button
+              onClick={() => setPagesOpen((v) => !v)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isPagesActive
+                  ? "bg-indigo-600 text-white"
+                  : "hover:bg-gray-700 hover:text-white"
+              }`}
+            >
+              <Files size={16} />
+              <span className="flex-1 text-left">Pages</span>
+              {pagesOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+
+            {pagesOpen && (
+              <div className="ml-4 mt-1 space-y-0.5">
+                {PAGES_LINKS.map(({ label, href }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                      pathname === href
+                        ? "bg-indigo-500 text-white"
+                        : "hover:bg-gray-700 hover:text-white text-gray-400"
+                    }`}
+                  >
+                    <span className="w-1 h-1 rounded-full bg-current opacity-60" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
         <button
           onClick={handleLogout}
@@ -84,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
       </aside>
 
-      {/* Main content — scrollable independently */}
+      {/* Main content */}
       <main className="flex-1 overflow-y-auto p-8">{children}</main>
     </div>
   );

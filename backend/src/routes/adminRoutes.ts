@@ -4,6 +4,7 @@ import { adminCreateReview } from '../controllers/reviewController';
 import { getAllSlides, createSlide, updateSlide, deleteSlide } from '../controllers/heroSlideController';
 import { updateConfig } from '../controllers/siteConfigController';
 import { getPromoPanel, updatePromoPanel } from '../controllers/promoPanelController';
+import { getStaticPage, updateStaticPage } from '../controllers/staticPageController';
 import { protect } from '../middleware/auth';
 
 const router = Router();
@@ -34,5 +35,9 @@ router.delete('/slides/:id', protect, deleteSlide);
 // Promo panel (two banner images)
 router.get('/promo-panel', protect, getPromoPanel);
 router.put('/promo-panel', protect, updatePromoPanel);
+
+// Static pages (privacy-policy, about, terms)
+router.get('/pages/:slug', protect, getStaticPage);
+router.put('/pages/:slug', protect, updateStaticPage);
 
 export default router;

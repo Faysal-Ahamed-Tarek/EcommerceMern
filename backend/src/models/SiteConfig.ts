@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ISocialLink {
+  platform: string;
+  url: string;
+  isActive: boolean;
+}
+
 export interface ISiteConfig extends Document {
   primaryColor: string;
   storeName?: string;
@@ -8,6 +14,15 @@ export interface ISiteConfig extends Document {
   storeEmail?: string;
   storeLogo?: string;
   marqueeTexts: string[];
+  headerLogo?: string;
+  footerLogo?: string;
+  footerDescription?: string;
+  socialLinks: ISocialLink[];
+  copyrightText?: string;
+  paymentMethodsText?: string;
+  footerPhone?: string;
+  footerEmail?: string;
+  footerLocation?: string;
 }
 
 const SiteConfigSchema = new Schema<ISiteConfig>(
@@ -25,6 +40,24 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
         'Cash on Delivery available across Bangladesh',
       ],
     },
+    headerLogo: { type: String },
+    footerLogo: { type: String },
+    footerDescription: { type: String, default: 'Your trusted marketplace for fresh, organic, and quality products. Delivered across Bangladesh with love.' },
+    socialLinks: {
+      type: [
+        {
+          platform: { type: String, required: true },
+          url: { type: String, required: true },
+          isActive: { type: Boolean, default: true },
+        },
+      ],
+      default: [],
+    },
+    copyrightText: { type: String, default: '© {year} ShopBD. All rights reserved.' },
+    paymentMethodsText: { type: String, default: 'Payment: Cash on Delivery 💵' },
+    footerPhone: { type: String, default: '+880 1XXX-XXXXXX' },
+    footerEmail: { type: String, default: 'support@shopbd.com' },
+    footerLocation: { type: String, default: 'Dhaka, Bangladesh' },
   },
   { timestamps: true }
 );

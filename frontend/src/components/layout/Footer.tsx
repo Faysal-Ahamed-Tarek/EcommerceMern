@@ -1,15 +1,73 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
+import { api } from "@/lib/api";
+
+interface SocialLink {
+  platform: string;
+  url: string;
+  isActive: boolean;
+}
+
+interface FooterConfig {
+  footerLogo?: string;
+  footerDescription: string;
+  socialLinks: SocialLink[];
+  copyrightText: string;
+  paymentMethodsText: string;
+  footerPhone: string;
+  footerEmail: string;
+  footerLocation: string;
+}
+
+const DEFAULTS: FooterConfig = {
+  footerDescription: "Your trusted marketplace for fresh, organic, and quality products. Delivered across Bangladesh with love.",
+  socialLinks: [],
+  copyrightText: "© {year} ShopBD. All rights reserved.",
+  paymentMethodsText: "Payment: Cash on Delivery 💵",
+  footerPhone: "+880 1XXX-XXXXXX",
+  footerEmail: "support@shopbd.com",
+  footerLocation: "Dhaka, Bangladesh",
+};
 
 const QUICK_LINKS = [
-  { label: "Home", href: "/" },
-  { label: "All Products", href: "/products" },
-  { label: "About Us", href: "/about" },
-  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Home",             href: "/" },
+  { label: "All Products",     href: "/products" },
+  { label: "About Us",         href: "/about" },
+  { label: "Privacy Policy",   href: "/privacy-policy" },
   { label: "Terms & Conditions", href: "/terms" },
 ];
 
+function resolveCopyright(text: string) {
+  return text.replace("{year}", String(new Date().getFullYear()));
+}
+
 export default function Footer() {
+  const [config, setConfig] = useState<FooterConfig>(DEFAULTS);
+
+  useEffect(() => {
+    api.get("/config")
+      .then((r) => {
+        const d = r.data?.data;
+        if (!d) return;
+        setConfig({
+          footerLogo: d.footerLogo || undefined,
+          footerDescription: d.footerDescription || DEFAULTS.footerDescription,
+          socialLinks: d.socialLinks || [],
+          copyrightText: d.copyrightText || DEFAULTS.copyrightText,
+          paymentMethodsText: d.paymentMethodsText || DEFAULTS.paymentMethodsText,
+          footerPhone: d.footerPhone || DEFAULTS.footerPhone,
+          footerEmail: d.footerEmail || DEFAULTS.footerEmail,
+          footerLocation: d.footerLocation || DEFAULTS.footerLocation,
+        });
+      })
+      .catch(() => {});
+  }, []);
+
+  const activeSocials = config.socialLinks.filter((s) => s.isActive);
+
   return (
     <footer className="bg-gray-900 text-gray-400 mt-16">
       {/* Main footer grid */}
@@ -17,36 +75,32 @@ export default function Footer() {
         {/* Brand */}
         <div className="space-y-4">
           <div className="inline-block">
-            <div className="bg-green-600 text-white font-extrabold text-xl px-3 py-1.5 rounded-lg leading-none">
-              Shop<span className="text-green-200">BD</span>
+            {config.footerLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={config.footerLogo} alt="Store logo" className="h-12 object-contain" />
+            ) : (
+              <div className="bg-green-600 text-white font-extrabold text-xl px-3 py-1.5 rounded-lg leading-none">
+                Shop<span className="text-green-200">BD</span>
+              </div>
+            )}
+          </div>
+          <p className="text-sm leading-relaxed">{config.footerDescription}</p>
+          {activeSocials.length > 0 && (
+            <div className="flex gap-3 pt-1 flex-wrap">
+              {activeSocials.map((s) => (
+                <a
+                  key={s.platform}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-800 hover:bg-green-700 transition-colors text-gray-400 hover:text-white px-3 py-2 rounded-lg text-xs font-bold"
+                  aria-label={s.platform}
+                >
+                  {s.platform}
+                </a>
+              ))}
             </div>
-          </div>
-          <p className="text-sm leading-relaxed">
-            Your trusted marketplace for fresh, organic, and quality products. Delivered across Bangladesh with love.
-          </p>
-          <div className="flex gap-3 pt-1">
-            <a
-              href="#"
-              className="bg-gray-800 hover:bg-green-700 transition-colors text-gray-400 hover:text-white p-2 rounded-lg"
-              aria-label="Facebook"
-            >
-              <span className="text-xs font-bold">f</span>
-            </a>
-            <a
-              href="#"
-              className="bg-gray-800 hover:bg-green-700 transition-colors text-gray-400 hover:text-white p-2 rounded-lg"
-              aria-label="Instagram"
-            >
-              <span className="text-xs font-bold">in</span>
-            </a>
-            <a
-              href="https://wa.me/8801XXXXXXXXX"
-              className="bg-gray-800 hover:bg-green-700 transition-colors text-gray-400 hover:text-white p-2 rounded-lg text-xs font-bold"
-              aria-label="WhatsApp"
-            >
-              WA
-            </a>
-          </div>
+          )}
         </div>
 
         {/* Quick Links */}
@@ -73,15 +127,15 @@ export default function Footer() {
           <ul className="space-y-3">
             <li className="flex items-start gap-2.5 text-sm">
               <Phone size={15} className="text-green-500 mt-0.5 shrink-0" />
-              <span>+880 1XXX-XXXXXX</span>
+              <span>{config.footerPhone}</span>
             </li>
             <li className="flex items-start gap-2.5 text-sm">
               <Mail size={15} className="text-green-500 mt-0.5 shrink-0" />
-              <span>support@shopbd.com</span>
+              <span>{config.footerEmail}</span>
             </li>
             <li className="flex items-start gap-2.5 text-sm">
               <MapPin size={15} className="text-green-500 mt-0.5 shrink-0" />
-              <span>Dhaka, Bangladesh</span>
+              <span>{config.footerLocation}</span>
             </li>
           </ul>
         </div>
@@ -91,10 +145,10 @@ export default function Footer() {
           <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">We Assure</h4>
           <div className="space-y-2.5">
             {[
-              { icon: "🚚", label: "Free Delivery", sub: "Orders above ৳999" },
-              { icon: "🔒", label: "Secure Payment", sub: "100% safe checkout" },
-              { icon: "↩️", label: "Easy Returns", sub: "7-day return policy" },
-              { icon: "✅", label: "Genuine Products", sub: "Quality guaranteed" },
+              { icon: "🚚", label: "Free Delivery",    sub: "Orders above ৳999" },
+              { icon: "🔒", label: "Secure Payment",   sub: "100% safe checkout" },
+              { icon: "↩️", label: "Easy Returns",     sub: "7-day return policy" },
+              { icon: "✅", label: "Genuine Products",  sub: "Quality guaranteed" },
             ].map((b) => (
               <div key={b.label} className="flex items-center gap-3 text-sm">
                 <span className="text-base">{b.icon}</span>
@@ -111,8 +165,8 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-gray-800">
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
-          <p>&copy; {new Date().getFullYear()} ShopBD. All rights reserved.</p>
-          <p>Payment: Cash on Delivery 💵</p>
+          <p>{resolveCopyright(config.copyrightText)}</p>
+          <p>{config.paymentMethodsText}</p>
         </div>
       </div>
     </footer>

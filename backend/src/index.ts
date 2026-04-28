@@ -16,6 +16,7 @@ import adminRoutes from './routes/adminRoutes';
 import { getActiveSlides } from './controllers/heroSlideController';
 import { getConfig } from './controllers/siteConfigController';
 import { getPromoPanel } from './controllers/promoPanelController';
+import { getStaticPage } from './controllers/staticPageController';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +34,7 @@ app.use('/api/admin', adminRoutes);
 app.get('/api/slides', getActiveSlides);
 app.get('/api/config', getConfig);
 app.get('/api/promo-panel', getPromoPanel);
+app.get('/api/pages/:slug', getStaticPage);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
