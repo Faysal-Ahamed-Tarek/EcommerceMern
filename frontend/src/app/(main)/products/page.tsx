@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, X, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -20,6 +20,14 @@ const LIMIT = 16;
 type FilterType = "" | "featured" | "topSelling";
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={28} /></div>}>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
+function ProductsContent() {
   const sp = useSearchParams();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -237,7 +245,6 @@ export default function ProductsPage() {
   );
 }
 
-/* ── Filter panel component ── */
 function FilterPanel({
   categories, category, setCategory,
   minPrice, setMinPrice, maxPrice, setMaxPrice,

@@ -75,15 +75,13 @@ export default function HeroSlider({ slides }: Props) {
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
 
+          {/* Full-image clickable link — sits above gradient, below arrow buttons (z-20) */}
           {slide.ctaLink && (
-            <div className="absolute inset-0 flex items-center px-8 sm:px-16">
-              {/* <Link
-                href={slide.ctaLink}
-                className="bg-green-600 hover:bg-green-700 transition-colors text-white font-bold px-8 py-3 rounded-xl text-sm shadow-lg"
-              >
-                Shop Now →
-              </Link> */}
-            </div>
+            <Link
+              href={slide.ctaLink}
+              className="absolute inset-0 z-[11]"
+              aria-label={slide.altText ?? "View offer"}
+            />
           )}
         </div>
       ))}

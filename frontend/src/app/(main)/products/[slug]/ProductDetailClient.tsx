@@ -450,7 +450,7 @@ export default function ProductDetailClient({ product }: Props) {
                   </button>
                   {openSections["howToUse"] && (
                     <div
-                      className="px-4 py-4 prose prose-sm max-w-none text-gray-700 font-sans"
+                      className="px-4 py-4 prose prose-sm max-w-none text-gray-700"
                       dangerouslySetInnerHTML={{ __html: sanitize(product.howToUse) }}
                     />
                   )}

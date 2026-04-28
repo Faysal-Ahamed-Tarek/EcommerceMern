@@ -15,3 +15,20 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// On 401, clear token and redirect to admin login
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (
+      typeof window !== "undefined" &&
+      err?.response?.status === 401 &&
+      window.location.pathname.startsWith("/admin") &&
+      window.location.pathname !== "/admin/login"
+    ) {
+      localStorage.removeItem("adminToken");
+      window.location.href = "/admin/login";
+    }
+    return Promise.reject(err);
+  }
+);

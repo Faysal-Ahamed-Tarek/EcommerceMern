@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import toast from "react-hot-toast";
 import { ShoppingBag, Package, Star, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
 import type { Order } from "@/types";
 
@@ -45,10 +46,12 @@ export default function AdminDashboardPage() {
   const [loadingWidgets, setLoadingWidgets] = useState(true);
 
   useEffect(() => {
-    api.get("/admin/stats").then((res) => setStats(res.data.data)).catch(() => {});
+    api.get("/admin/stats")
+      .then((res) => setStats(res.data.data))
+      .catch(() => toast.error("Failed to load stats"));
     api.get("/orders?limit=10")
       .then((res) => setRecentOrders(res.data.data))
-      .catch(() => {})
+      .catch(() => toast.error("Failed to load orders"))
       .finally(() => setLoadingOrders(false));
 
     Promise.all([
@@ -59,7 +62,7 @@ export default function AdminDashboardPage() {
         setLowStock(lowRes.data.data);
         setTopSelling(topRes.data.data);
       })
-      .catch(() => {})
+      .catch(() => toast.error("Failed to load widgets"))
       .finally(() => setLoadingWidgets(false));
   }, []);
 

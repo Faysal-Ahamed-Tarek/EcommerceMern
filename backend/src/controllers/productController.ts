@@ -1,12 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
-import { Product } from '../models';
+import { Product, Category } from '../models';
 
 export const getProducts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { page = 1, limit = 20, category, search, minPrice, maxPrice, sort, status, featured, topSelling } = req.query;
     const filter: Record<string, unknown> = { status: status || 'published' };
 
-    if (category) filter.category = category;
+    if (category) {
+      // Products store category as category name; frontend sends slug — resolve it.
+      const cat = await Category.findOne({ slug: String(category) }).lean();
+      filter.category = cat ? cat.name : String(category);
+    }
     if (featured === 'true') filter.isFeatured = true;
     if (topSelling === 'true') filter.isTopSelling = true;
     if (search) {
@@ -22,19 +26,20 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
       filter.basePrice = priceFilter;
     }
 
+    // For "latest", unordered products are randomized. For price sorts, price is the secondary key.
     const sortMap: Record<string, Record<string, number>> = {
-      latest: { createdAt: -1 },
+      latest: { _rand: 1 },
       price_asc: { basePrice: 1 },
       price_desc: { basePrice: -1 },
     };
-    const secondarySort = sortMap[sort as string] ?? { createdAt: -1 };
+    const secondarySort = sortMap[sort as string] ?? { _rand: 1 };
 
     const skip = (Number(page) - 1) * Number(limit);
 
     const basePipeline = [
       { $match: filter },
-      { $addFields: { _ord: { $ifNull: ['$order', 999999] } } },
-      { $sort: { _ord: 1, ...secondarySort } },
+      { $addFields: { _ord: { $ifNull: ['$order', 999999] }, _rand: { $rand: {} } } },
+      { $sort: { _ord: 1, ...secondarySort } as Record<string, 1 | -1> },
     ];
 
     const [products, countResult] = await Promise.all([
@@ -42,7 +47,7 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
         ...basePipeline,
         { $skip: skip },
         { $limit: Number(limit) },
-        { $project: { _ord: 0 } },
+        { $project: { _ord: 0, _rand: 0 } },
       ]),
       Product.aggregate([...basePipeline, { $count: 'total' }]),
     ]);

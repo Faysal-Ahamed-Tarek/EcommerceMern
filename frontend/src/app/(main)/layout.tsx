@@ -1,5 +1,6 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ScrollToTop from "@/components/ui/ScrollToTop";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <Header />
       <div className="flex-1">{children}</div>
       <Footer />
+      <ScrollToTop />
     </>
   );
 }

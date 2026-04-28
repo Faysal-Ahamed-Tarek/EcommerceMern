@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ShoppingCart, Phone, Menu, X, Search, Tag,
+  ShoppingCart, Phone, Menu, X, Search, Tag, Store,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -53,14 +53,11 @@ export default function Header() {
 
   return (
     <>
-      {/* ── Marquee top bar ── */}
-      <div className="bg-green-700 text-white text-sm py-2 overflow-hidden">
-        <div className="flex whitespace-nowrap animate-marquee">
-          {[...marqueeTexts, ...marqueeTexts].map((text, i) => (
-            <span key={i} className="inline-block px-10 font-medium tracking-wide">
-              {text}
-              <span className="mx-8 opacity-50">•</span>
-            </span>
+      {/* ── Top bar ── */}
+      <div className="bg-green-700 text-white text-xs py-2">
+        <div className="max-w-[1200px] mx-auto px-2 flex items-center justify-center gap-0 md:gap-6 flex-wrap">
+          {marqueeTexts.map((text, i) => (
+            <span key={i} className=" font-medium tracking-wide">{text}</span>
           ))}
         </div>
       </div>
@@ -103,10 +100,18 @@ export default function Header() {
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-4 ml-auto sm:ml-0 shrink-0">
+            {/* Shop */}
+            <Link
+              href="/products"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
+            >
+              <Store size={14} /> Shop
+            </Link>
+
             {/* Offer */}
             <Link
               href="/products?offer=true"
-              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
             >
               <Tag size={14} /> Offer
             </Link>
@@ -114,15 +119,15 @@ export default function Header() {
             {/* Cart */}
             <Link
               href="/checkout"
-              className="relative flex items-center gap-2 transition-colors px-3 py-2 rounded-xl text-sm font-medium"
+              className="relative flex items-center gap-2 transition-colors px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50"
             >
               <ShoppingCart size={18} />
               {totalItems >= 0 && (
-                <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 text-white">
                   {totalItems}
                 </span>
               )}
-                <span className="text-gray-700 hidden sm:inline">Cart</span>
+              <span className="hidden sm:inline">Cart</span>
             </Link>
 
             {/* Mobile menu toggle */}
