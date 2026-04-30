@@ -1,34 +1,41 @@
 # Role
 
-You are an expert full-stack developer working with Next.js, Node.js, Express, and MongoDB. You write clean, scalable, production-ready code.
+You are an expert full-stack developer using Next.js (App Router), Node.js, Express, and MongoDB. Build scalable, production-grade features.
 
 # Task
+Implement a **Dynamic SEO Management System** for multiple static pages in an eCommerce admin panel.
 
-Add a new "SEO" feature to the existing eCommerce system.
+The system should support SEO for:
 
-This feature will allow admins to manage **Homepage SEO fields** from the dashboard.
+* homepage
+* all_products
+* about
+* privacy_policy
+* terms_conditions
 
 ---
+# Backend Requirements
+## 1. Create SEO Model
+Collection: seo_settings
 
-# Backend Requirements (Node.js + Express + MongoDB)
+Schema:
 
-## 1. Create SEO Settings Model
+* page (string, required, unique)
+  enum: ["homepage", "all_products", "about", "privacy_policy", "terms_conditions"]
 
-Create a new collection: `seo_settings`
+* title (string, required, max 60 chars)
 
-Schema fields:
+* description (string, required, max 320 chars)
 
-* page (string, required) → e.g. "homepage"
-* title (string, required)
-* description (string, required)
 * canonicalUrl (string)
+
 * ogImage (string)
+
 * keywords (string, optional)
-* updatedAt (date, auto)
 
-Ensure:
+* createdAt (date)
 
-* Only ONE document exists per page (use unique index on `page`)
+* updatedAt (date)
 
 ---
 
@@ -36,113 +43,151 @@ Ensure:
 
 ### GET /api/seo/:page
 
-* Fetch SEO settings by page (e.g. homepage)
-
-### POST /api/seo
-
-* Create SEO settings (if not exists)
+* Returns SEO data for given page
 
 ### PUT /api/seo/:page
 
-* Update existing SEO settings
-
-Validation:
-
-* title max 60 chars
-* description max 160–320 chars
+* Create or update SEO (upsert)
 
 ---
 
 ## 3. Controller Logic
 
-* If SEO not found → return default empty structure
-* Ensure update does not create duplicate entries
-* Use clean error handling
+* If document exists → update
+* Else → create new (upsert = true)
+* Validate:
+
+  * title length ≤ 60
+  * description length ≤ 320
+
+Return structured response:
+{
+success: true,
+data: {...}
+}
 
 ---
 
-# Frontend Requirements (Next.js Admin Panel)
+# Frontend Admin Panel (Next.js)
 
-## 1. Add New Menu Item
+## 1. Add New Menu
 
-Add sidebar item:
-👉 "SEO"
+Sidebar:
+👉 SEO Settings
 
 ---
 
 ## 2. Create Page: /admin/seo
 
-Form fields:
+## UI Structure:
+
+Dropdown:
+
+* Select Page:
+
+  * Home
+  * All Products
+  * About Us
+  * Privacy Policy
+  * Terms & Conditions
+
+---
+
+## 3. Form Fields
 
 * Meta Title (input)
-* Meta Description (textarea with character counter)
-* Canonical URL (input)
-* OG Image URL (input or upload)
-* Keywords (comma-separated input)
+* Meta Description (textarea + character counter)
+* Canonical URL
+* OG Image URL
+* Keywords (comma separated)
 
 ---
 
-## 3. Features
+## 4. Behavior
 
-* Prefill data using GET /api/seo/homepage
-* Save button → calls POST or PUT
+* On page select → call GET /api/seo/:page
+* Prefill form
+* Save → PUT /api/seo/:page
 * Show success/error toast
-* Disable submit while loading
 
 ---
 
-## 4. UX Improvements
+## 5. UX Enhancements
 
-* Show character count for title & description
-* Add placeholder examples
-* Add helper text:
+* Live Google Preview:
 
-  * Title: "Recommended 50–60 characters"
-  * Description: "Recommended 150–160 characters"
+  * Show how title + description appear in search
+
+* Character limits:
+
+  * Title: 50–60
+  * Description: 150–160
+
+* Placeholder examples per page:
+  Example (homepage):
+  "Best Online Shopping in Bangladesh | ShopBD"
 
 ---
 
-# Frontend (Storefront Integration)
+# Frontend Store Integration (IMPORTANT)
 
-## Apply SEO dynamically on homepage
+Use Next.js App Router metadata API
 
-Using Next.js App Router:
+For each page:
 
-* Fetch SEO data from API
-* Inject into metadata:
-
-Example:
+## Example: Homepage
 
 export async function generateMetadata() {
 const seo = await fetch('/api/seo/homepage').then(res => res.json())
 
 return {
-title: seo.title,
-description: seo.description,
+title: seo.data.title,
+description: seo.data.description,
 alternates: {
-canonical: seo.canonicalUrl,
+canonical: seo.data.canonicalUrl,
 },
 openGraph: {
-images: [seo.ogImage],
+images: [seo.data.ogImage],
 },
 }
 }
 
 ---
 
-# Bonus (Optional but Recommended)
+Repeat same for:
 
-* Add fallback default values if SEO is missing
-* Cache SEO response for performance
-* Add validation for URL format
+* /products → page = all_products
+* /about → page = about
+* /privacy → page = privacy_policy
+* /terms → page = terms_conditions
 
 ---
 
-# Output Expectations
+# Fallback Logic (CRITICAL)
 
-* Full backend model, controller, and routes
-* Frontend admin page UI (clean + modern)
-* Integration with homepage metadata
-* Clean, modular, production-ready code
+If SEO is missing:
 
-Do NOT skip error handling or validation.
+* title → default site title
+* description → default tagline
+* ogImage → default banner
+
+---
+
+# Bonus (Advanced)
+
+* Cache SEO response (server-side)
+* Add validation for URL format
+* Prevent empty submissions
+* Add "last updated" info in UI
+
+---
+
+# Output Requirements
+
+* Mongoose model
+* Express routes + controller
+* Admin UI page
+* API integration
+* Next.js metadata integration
+
+Code must be clean, modular, and production-ready.
