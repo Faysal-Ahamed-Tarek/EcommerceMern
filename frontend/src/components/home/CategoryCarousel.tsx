@@ -7,10 +7,12 @@ import ProductCard from "@/components/product/ProductCard";
 import type { Product } from "@/types";
 
 interface Props {
+  categoryName: string;
+  categorySlug: string;
   products: Product[];
 }
 
-export default function TopSellingSection({ products }: Props) {
+export default function CategoryCarousel({ categoryName, categorySlug, products }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -43,13 +45,13 @@ export default function TopSellingSection({ products }: Props) {
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <span className="block w-1 h-6 bg-green-600 rounded-full" />
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Top Selling</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">{categoryName}</h2>
         </div>
         <Link
-          href="/products?topSelling=true"
+          href={`/category/${categorySlug}`}
           className="text-sm font-semibold text-green-600 hover:text-green-800 transition-colors"
         >
-          View all →
+          View All →
         </Link>
       </div>
 

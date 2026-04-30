@@ -7,7 +7,6 @@ import {
   ShoppingCart, Phone, Menu, X, Search, Tag, Store,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
-import { useDebounce } from "@/hooks/useDebounce";
 import { api } from "@/lib/api";
 import type { Category } from "@/types";
 
@@ -20,19 +19,19 @@ export default function Header() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [marqueeTexts, setMarqueeTexts] = useState<string[]>(DEFAULT_MARQUEE);
+  const [headerLogo, setHeaderLogo] = useState<string>("");
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const debouncedQuery = useDebounce(query, 300);
   const totalItems = useCartStore((s) => s.totalItems());
-  const totalAmount = useCartStore((s) => s.totalAmount());
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data.data ?? [])).catch(() => {});
     api.get("/config")
       .then((r) => {
-        const texts: string[] = r.data?.data?.marqueeTexts;
-        if (texts && texts.length > 0) setMarqueeTexts(texts);
+        const d = r.data?.data;
+        if (d?.marqueeTexts?.length > 0) setMarqueeTexts(d.marqueeTexts);
+        if (d?.headerLogo) setHeaderLogo(d.headerLogo);
       })
       .catch(() => {});
   }, []);
@@ -72,9 +71,14 @@ export default function Header() {
         <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center gap-3 lg:gap-6">
           {/* Logo */}
           <Link href="/" className="shrink-0 flex items-center gap-2">
-            <div className="bg-green-600 text-white font-extrabold text-lg px-3 py-1.5 rounded-lg leading-none">
-              Shop<span className="text-green-200">BD</span>
-            </div>
+            {headerLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={headerLogo} alt="Store logo" className="w-32 md:w-32 h-auto object-contain" />
+            ) : (
+              <div className="bg-green-600 text-white font-extrabold text-lg px-3 py-1.5 rounded-lg leading-none">
+                Shop<span className="text-green-200">BD</span>
+              </div>
+            )}
           </Link>
 
           {/* Search bar */}
@@ -99,7 +103,7 @@ export default function Header() {
           </form>
 
           {/* Right actions */}
-          <div className="flex items-center gap-2 sm:gap-4 ml-auto sm:ml-0 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-1 ml-auto sm:ml-0 shrink-0">
             {/* Shop */}
             <Link
               href="/products"

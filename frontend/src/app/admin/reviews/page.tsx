@@ -322,15 +322,16 @@ export default function AdminReviewsPage() {
                     {new Date(r.createdAt).toLocaleDateString("en-GB")}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {r.status !== "approved" && (
                         <button
                           onClick={() => updateStatus(r._id, "approved")}
                           disabled={acting === r._id}
                           title="Approve"
-                          className="text-green-600 hover:text-green-800 transition-colors disabled:opacity-40"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-colors disabled:opacity-40"
                         >
-                          <CheckCircle size={16} />
+                          <CheckCircle size={12} />
+                          Approve
                         </button>
                       )}
                       {r.status !== "rejected" && (
@@ -338,26 +339,27 @@ export default function AdminReviewsPage() {
                           onClick={() => updateStatus(r._id, "rejected")}
                           disabled={acting === r._id}
                           title="Reject"
-                          className="text-orange-500 hover:text-orange-700 transition-colors disabled:opacity-40"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition-colors disabled:opacity-40"
                         >
-                          <XCircle size={16} />
+                          <XCircle size={12} />
+                          Reject
                         </button>
                       )}
                       <button
-                        onClick={() =>
-                          setEditTarget(r)
-                        }
+                        onClick={() => setEditTarget(r)}
                         title="Edit"
-                        className="text-blue-500 hover:text-blue-700 transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
                       >
-                        <Pencil size={15} />
+                        <Pencil size={12} />
+                        Edit
                       </button>
                       <button
                         onClick={() => setDeleteId(r._id)}
                         title="Delete"
-                        className="text-red-500 hover:text-red-700 transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={12} />
+                        Delete
                       </button>
                     </div>
                   </td>

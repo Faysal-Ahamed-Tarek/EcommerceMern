@@ -5,7 +5,7 @@ import { CldUploadWidget } from "next-cloudinary";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
 import { Plus, Pencil, Trash2, X, Loader2, Check, ImagePlus, Eye, EyeOff, Save, GripVertical } from "lucide-react";
-import type { HeroSlide, PromoPanel, PromoPanelItem } from "@/types";
+import type { HeroSlide, PromoPanel, PromoPanelItem, Category } from "@/types";
 
 // ─── Hero Slides ────────────────────────────────────────────────────────────
 
@@ -68,6 +68,11 @@ export default function AdminContentPage() {
   ]);
   const [newMarqueeText, setNewMarqueeText] = useState('');
   const [savingMarquee, setSavingMarquee] = useState(false);
+
+  // Home categories state
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [homeCategories, setHomeCategories] = useState<string[]>([]);
+  const [savingHomeCats, setSavingHomeCats] = useState(false);
 
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
@@ -175,13 +180,18 @@ export default function AdminContentPage() {
 
   useEffect(() => { fetchPromoPanel(); }, [fetchPromoPanel]);
 
-  // Load marquee texts from config
+  // Load marquee texts and home categories from config, plus all categories
   useEffect(() => {
     api.get('/config')
       .then((r) => {
-        const texts: string[] = r.data?.data?.marqueeTexts;
-        if (texts && texts.length > 0) setMarqueeTexts(texts);
+        const d = r.data?.data;
+        if (d?.marqueeTexts?.length > 0) setMarqueeTexts(d.marqueeTexts);
+        if (d?.homeCategories) setHomeCategories(d.homeCategories);
       })
+      .catch(() => {});
+
+    api.get('/categories')
+      .then((r) => setAllCategories(r.data?.data ?? []))
       .catch(() => {});
   }, []);
 
@@ -208,6 +218,29 @@ export default function AdminContentPage() {
 
   const updateMarqueeText = (i: number, val: string) =>
     setMarqueeTexts((t) => t.map((item, idx) => (idx === i ? val : item)));
+
+  const handleSaveHomeCategories = async () => {
+    setSavingHomeCats(true);
+    try {
+      await api.put('/admin/config', { homeCategories });
+      toast.success('Home categories saved');
+    } catch {
+      toast.error('Failed to save home categories');
+    } finally {
+      setSavingHomeCats(false);
+    }
+  };
+
+  const toggleHomeCategory = (slug: string) => {
+    setHomeCategories((prev) => {
+      if (prev.includes(slug)) return prev.filter((s) => s !== slug);
+      if (prev.length >= 2) {
+        toast.error('You can select at most 2 categories');
+        return prev;
+      }
+      return [...prev, slug];
+    });
+  };
 
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -425,6 +458,65 @@ export default function AdminContentPage() {
             >
               {savingMarquee ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Marquee
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Home Page Categories ────────────────────────────────────── */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Home Page Category Sections</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Select up to 2 categories to display as product carousels on the home page (before the footer)
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          {allCategories.length === 0 ? (
+            <p className="text-sm text-gray-400">No categories found. Create categories first.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
+              {allCategories.map((cat) => {
+                const selected = homeCategories.includes(cat.slug);
+                return (
+                  <button
+                    key={cat._id}
+                    type="button"
+                    onClick={() => toggleHomeCategory(cat.slug)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-colors text-left ${
+                      selected
+                        ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                        : "border-gray-200 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50"
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center ${
+                        selected ? "border-indigo-500 bg-indigo-500" : "border-gray-300"
+                      }`}
+                    >
+                      {selected && <Check size={10} className="text-white" />}
+                    </span>
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-400">
+              {homeCategories.length}/2 selected
+              {homeCategories.length > 0 && `: ${homeCategories.join(", ")}`}
+            </p>
+            <button
+              type="button"
+              onClick={handleSaveHomeCategories}
+              disabled={savingHomeCats}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            >
+              {savingHomeCats ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save Categories
             </button>
           </div>
         </div>

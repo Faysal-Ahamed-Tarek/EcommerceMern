@@ -23,6 +23,7 @@ export interface ISiteConfig extends Document {
   footerPhone?: string;
   footerEmail?: string;
   footerLocation?: string;
+  homeCategories: string[];
 }
 
 const SiteConfigSchema = new Schema<ISiteConfig>(
@@ -58,6 +59,7 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
     footerPhone: { type: String, default: '+880 1XXX-XXXXXX' },
     footerEmail: { type: String, default: 'support@shopbd.com' },
     footerLocation: { type: String, default: 'Dhaka, Bangladesh' },
+    homeCategories: { type: [String], default: [] },
   },
   { timestamps: true }
 );

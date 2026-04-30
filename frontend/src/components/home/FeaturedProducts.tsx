@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "@/components/product/ProductCard";
@@ -12,13 +12,28 @@ interface Props {
 
 export default function FeaturedProducts({ products }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const syncArrows = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    syncArrows();
+    window.addEventListener("resize", syncArrows, { passive: true });
+    return () => window.removeEventListener("resize", syncArrows);
+  }, [products, syncArrows]);
 
   const scroll = (dir: "left" | "right") => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    const step = container.clientWidth >= 1024 ? container.clientWidth / 4 : 280;
-    container.scrollBy({ left: dir === "right" ? step : -step, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    const step = el.clientWidth >= 1024 ? el.clientWidth / 4 : 280;
+    el.scrollBy({ left: dir === "right" ? step : -step, behavior: "smooth" });
+    setTimeout(syncArrows, 350);
   };
 
   if (!products.length) return null;
@@ -40,8 +55,9 @@ export default function FeaturedProducts({ products }: Props) {
 
       <div
         ref={scrollRef}
+        onScroll={syncArrows}
         className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-2
-          [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden mb-4"
       >
         {products.map((product) => (
           <div
@@ -53,20 +69,22 @@ export default function FeaturedProducts({ products }: Props) {
         ))}
       </div>
 
-      <div className="mt-5 flex items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-1.5">
         <button
           onClick={() => scroll("left")}
-          className="cursor-pointer h-10 w-10 sm:h-11 sm:w-11 inline-flex items-center justify-center rounded-md border border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors"
+          disabled={!canLeft}
           aria-label="Scroll left"
+          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-gray-300 text-gray-500 hover:border-green-500 hover:text-green-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={16} />
         </button>
         <button
           onClick={() => scroll("right")}
-          className="cursor-pointer h-10 w-10 sm:h-11 sm:w-11 inline-flex items-center justify-center rounded-md border border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors"
+          disabled={!canRight}
           aria-label="Scroll right"
+          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-gray-300 text-gray-500 hover:border-green-500 hover:text-green-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={16} />
         </button>
       </div>
     </section>

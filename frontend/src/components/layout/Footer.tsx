@@ -69,7 +69,7 @@ export default function Footer() {
   const activeSocials = config.socialLinks.filter((s) => s.isActive);
 
   return (
-    <footer className="bg-gray-900 text-gray-400 mt-16">
+    <footer className="bg-white border-t border-gray-100">
       {/* Main footer grid */}
       <div className="max-w-[1200px] mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {/* Brand */}
@@ -84,7 +84,7 @@ export default function Footer() {
               </div>
             )}
           </div>
-          <p className="text-sm leading-relaxed">{config.footerDescription}</p>
+          <p className="text-sm text-gray-500 leading-relaxed">{config.footerDescription}</p>
           {activeSocials.length > 0 && (
             <div className="flex gap-3 pt-1 flex-wrap">
               {activeSocials.map((s) => (
@@ -93,7 +93,7 @@ export default function Footer() {
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-gray-800 hover:bg-green-700 transition-colors text-gray-400 hover:text-white px-3 py-2 rounded-lg text-xs font-bold"
+                  className="bg-gray-100 hover:bg-green-600 transition-colors text-gray-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold"
                   aria-label={s.platform}
                 >
                   {s.platform}
@@ -105,15 +105,15 @@ export default function Footer() {
 
         {/* Quick Links */}
         <div>
-          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Quick Links</h4>
+          <h4 className="text-gray-900 font-semibold mb-4 text-sm uppercase tracking-wider">Quick Links</h4>
           <ul className="space-y-2.5">
             {QUICK_LINKS.map((l) => (
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className="text-sm hover:text-green-400 transition-colors flex items-center gap-1.5 group"
+                  className="text-sm text-gray-500 hover:text-green-600 transition-colors flex items-center gap-1.5 group"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-600 group-hover:bg-green-500 transition-colors" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-green-500 transition-colors" />
                   {l.label}
                 </Link>
               </li>
@@ -123,17 +123,17 @@ export default function Footer() {
 
         {/* Contact */}
         <div>
-          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contact Us</h4>
+          <h4 className="text-gray-900 font-semibold mb-4 text-sm uppercase tracking-wider">Contact Us</h4>
           <ul className="space-y-3">
-            <li className="flex items-start gap-2.5 text-sm">
+            <li className="flex items-start gap-2.5 text-sm text-gray-500">
               <Phone size={15} className="text-green-500 mt-0.5 shrink-0" />
               <span>{config.footerPhone}</span>
             </li>
-            <li className="flex items-start gap-2.5 text-sm">
+            <li className="flex items-start gap-2.5 text-sm text-gray-500">
               <Mail size={15} className="text-green-500 mt-0.5 shrink-0" />
               <span>{config.footerEmail}</span>
             </li>
-            <li className="flex items-start gap-2.5 text-sm">
+            <li className="flex items-start gap-2.5 text-sm text-gray-500">
               <MapPin size={15} className="text-green-500 mt-0.5 shrink-0" />
               <span>{config.footerLocation}</span>
             </li>
@@ -142,7 +142,7 @@ export default function Footer() {
 
         {/* Trust badges */}
         <div>
-          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">We Assure</h4>
+          <h4 className="text-gray-900 font-semibold mb-4 text-sm uppercase tracking-wider">We Assure</h4>
           <div className="space-y-2.5">
             {[
               { icon: "🚚", label: "Free Delivery",    sub: "Orders above ৳999" },
@@ -153,8 +153,8 @@ export default function Footer() {
               <div key={b.label} className="flex items-center gap-3 text-sm">
                 <span className="text-base">{b.icon}</span>
                 <div>
-                  <span className="text-white font-medium">{b.label}</span>
-                  <span className="text-gray-500 text-xs block">{b.sub}</span>
+                  <span className="text-gray-800 font-medium">{b.label}</span>
+                  <span className="text-gray-400 text-xs block">{b.sub}</span>
                 </div>
               </div>
             ))}
@@ -163,8 +163,8 @@ export default function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-gray-800">
-        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
+      <div className="border-t border-gray-100">
+        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
           <p>{resolveCopyright(config.copyrightText)}</p>
           <p>{config.paymentMethodsText}</p>
         </div>

@@ -43,7 +43,11 @@ function ProductsContent() {
   const [sort, setSort] = useState("latest");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [filterType, setFilterType] = useState<FilterType>("");
+  const [filterType, setFilterType] = useState<FilterType>(() => {
+    if (sp.get("topSelling") === "true") return "topSelling";
+    if (sp.get("featured") === "true") return "featured";
+    return "";
+  });
 
   const debouncedSearch = useDebounce(search, 400);
 
@@ -52,7 +56,7 @@ function ProductsContent() {
 
   const fetchProducts = useCallback(async (pageNum: number, append: boolean) => {
     if (append) setLoadingMore(true);
-    else setLoading(true);
+    else { setLoading(true); setPage(pageNum); }
     try {
       const params = new URLSearchParams();
       params.set("page", String(pageNum));
@@ -82,7 +86,7 @@ function ProductsContent() {
   // On filter change: reset page and products, fetch fresh
   useEffect(() => {
     isLoadMore.current = false;
-    setPage(1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts(1, false);
   }, [fetchProducts]);
 
@@ -114,7 +118,9 @@ function ProductsContent() {
       <nav className="flex items-center gap-1.5 text-xs text-gray-500 mb-5">
         <Link href="/" className="hover:text-green-600">Home</Link>
         <ChevronRight size={12} />
-        <span className="text-gray-800 font-medium">All Products</span>
+        <span className="text-gray-800 font-medium">
+          {filterType === "topSelling" ? "Top Selling" : filterType === "featured" ? "Featured Products" : "All Products"}
+        </span>
       </nav>
 
       <div className="flex items-start gap-6">
@@ -128,8 +134,6 @@ function ProductsContent() {
             setMinPrice={setMinPrice}
             maxPrice={maxPrice}
             setMaxPrice={setMaxPrice}
-            filterType={filterType}
-            setFilterType={setFilterType}
             hasActiveFilter={hasActiveFilter}
             clearFilters={clearFilters}
           />
@@ -191,8 +195,8 @@ function ProductsContent() {
             </div>
           )}
 
-          {/* Result count — only show when searching/filtering */}
-          {hasActiveFilter && !loading && (
+          {/* Result count */}
+          {!loading && (
             <p className="text-sm text-gray-500 mb-4 font-medium">
               {total} product{total !== 1 ? "s" : ""} found
             </p>
@@ -248,14 +252,12 @@ function ProductsContent() {
 function FilterPanel({
   categories, category, setCategory,
   minPrice, setMinPrice, maxPrice, setMaxPrice,
-  filterType, setFilterType,
   hasActiveFilter, clearFilters,
 }: {
   categories: Category[];
   category: string; setCategory: (v: string) => void;
   minPrice: string; setMinPrice: (v: string) => void;
   maxPrice: string; setMaxPrice: (v: string) => void;
-  filterType: FilterType; setFilterType: (v: FilterType) => void;
   hasActiveFilter: boolean; clearFilters: () => void;
 }) {
   return (

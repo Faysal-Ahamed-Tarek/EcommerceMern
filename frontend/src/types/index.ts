@@ -121,6 +121,19 @@ export interface PromoPanel {
   right: PromoPanelItem;
 }
 
+export interface HomeReview {
+  _id: string;
+  customerName: string;
+  rating: number;
+  comment: string;
+  reviewerPhoto?: string;
+  imageUrl?: string;
+  isVerified: boolean;
+  isActive: boolean;
+  order: number;
+  createdAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
