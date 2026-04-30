@@ -1,4 +1,28 @@
+import type { Metadata } from "next";
 import { api } from "@/lib/api";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+async function getSEOData(page: string) {
+  try {
+    const res = await fetch(`${API}/seo/${page}`, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSEOData("about");
+  return {
+    title: seo?.title || "About Us | ShopBD",
+    description: seo?.description || "Learn more about ShopBD - your trusted online shopping destination in Bangladesh.",
+    alternates: seo?.canonicalUrl ? { canonical: seo.canonicalUrl } : undefined,
+    openGraph: seo?.ogImage ? { images: [{ url: seo.ogImage }] } : undefined,
+  };
+}
 
 async function getPageContent(): Promise<string> {
   try {

@@ -4,6 +4,8 @@ export { default as Order } from './Order';
 export { default as Review } from './Review';
 export { default as Admin } from './Admin';
 export { default as HeroSlide } from './HeroSlide';
+export { default as SEO } from './SEO';
+export type { ISEO } from './SEO';
 
 export type { IProduct, IProductVariant, IProductImage } from './Product';
 export type { ICategory } from './Category';

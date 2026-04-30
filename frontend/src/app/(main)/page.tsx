@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import HeroSlider from "@/components/home/HeroSlider";
 import TrustBadges from "@/components/home/TrustBadges";
 import CategoryGrid from "@/components/home/CategoryGrid";
@@ -9,6 +10,27 @@ import CategoryCarousel from "@/components/home/CategoryCarousel";
 import type { Product, HomeReview, HeroSlide, PromoPanel, Category, ApiResponse } from "@/types";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+async function getSEOData(page: string) {
+  try {
+    const res = await fetch(`${API}/seo/${page}`, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSEOData("homepage");
+  return {
+    title: seo?.title || "ShopBD - Best Online Shopping in Bangladesh",
+    description: seo?.description || "Shop quality products online with fast delivery across Bangladesh.",
+    alternates: seo?.canonicalUrl ? { canonical: seo.canonicalUrl } : undefined,
+    openGraph: seo?.ogImage ? { images: [{ url: seo.ogImage }] } : undefined,
+  };
+}
 
 async function getFeaturedProducts(): Promise<Product[]> {
   try {

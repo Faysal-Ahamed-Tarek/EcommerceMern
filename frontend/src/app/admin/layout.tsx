@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, Tag, ShoppingBag, Star, Palette, LogOut, ChevronDown, ChevronRight, Files } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ShoppingBag, Star, Palette, LogOut, ChevronDown, ChevronRight, Files, Globe } from "lucide-react";
 
 const PAGES_LINKS = [
   { label: "Home",                href: "/admin/pages/home" },
@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { label: "Orders",     href: "/admin/orders",     icon: ShoppingBag },
   { label: "Reviews",    href: "/admin/reviews",    icon: Star },
   { label: "Theme",      href: "/admin/theme",      icon: Palette },
+  { label: "SEO", href: "/admin/seo",      icon: Globe },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

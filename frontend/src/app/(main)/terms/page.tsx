@@ -1,4 +1,28 @@
+import type { Metadata } from "next";
 import { api } from "@/lib/api";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+async function getSEOData(page: string) {
+  try {
+    const res = await fetch(`${API}/seo/${page}`, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSEOData("terms_conditions");
+  return {
+    title: seo?.title || "Terms & Conditions | ShopBD",
+    description: seo?.description || "Review the terms and conditions governing your use of ShopBD.",
+    alternates: seo?.canonicalUrl ? { canonical: seo.canonicalUrl } : undefined,
+    openGraph: seo?.ogImage ? { images: [{ url: seo.ogImage }] } : undefined,
+  };
+}
 
 async function getPageContent(): Promise<string> {
   try {
