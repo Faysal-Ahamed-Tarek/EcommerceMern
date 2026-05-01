@@ -37,11 +37,11 @@ export const createProductSchema = z
     isFeatured: z.boolean().optional(),
     isTopSelling: z.boolean().optional(),
     status: z.enum(['draft', 'published']).optional(),
-    metaTitle: z.string().max(120).optional(),
-    metaDescription: z.string().max(320).optional(),
+    metaTitle: z.union([z.string().min(5).max(60), z.literal("")]).optional(),
+    metaDescription: z.union([z.string().min(10).max(320), z.literal("")]).optional(),
     metaKeywords: z.string().max(500).optional(),
-    ogImage: z.string().optional(),
-    canonicalUrl: z.string().optional(),
+    ogImage: z.union([z.string().url(), z.literal("")]).optional(),
+    canonicalUrl: z.union([z.string().url(), z.literal("")]).optional(),
   })
   .refine(
     (data) => {
@@ -78,11 +78,11 @@ export const updateProductSchema = z.object({
   isFeatured: z.boolean().optional(),
   isTopSelling: z.boolean().optional(),
   status: z.enum(['draft', 'published']).optional(),
-  metaTitle: z.string().max(120).optional(),
-  metaDescription: z.string().max(320).optional(),
+  metaTitle: z.union([z.string().min(5).max(60), z.literal("")]).optional(),
+  metaDescription: z.union([z.string().min(10).max(320), z.literal("")]).optional(),
   metaKeywords: z.string().max(500).optional(),
-  ogImage: z.string().optional(),
-  canonicalUrl: z.string().optional(),
+  ogImage: z.union([z.string().url(), z.literal("")]).optional(),
+  canonicalUrl: z.union([z.string().url(), z.literal("")]).optional(),
 });
 
 export const productQuerySchema = z.object({

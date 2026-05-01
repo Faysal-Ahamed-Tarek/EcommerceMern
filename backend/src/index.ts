@@ -15,6 +15,7 @@ import reviewRoutes from './routes/reviewRoutes';
 import adminRoutes from './routes/adminRoutes';
 import homeReviewRoutes from './routes/homeReviewRoutes';
 import seoRoutes from './routes/seoRoutes';
+import couponRoutes from './routes/couponRoutes';
 import { getActiveSlides } from './controllers/heroSlideController';
 import { getConfig } from './controllers/siteConfigController';
 import { getPromoPanel } from './controllers/promoPanelController';
@@ -39,6 +40,7 @@ app.get('/api/config', getConfig);
 app.get('/api/promo-panel', getPromoPanel);
 app.get('/api/pages/:slug', getStaticPage);
 app.use('/api/seo', seoRoutes);
+app.use('/api/coupons', couponRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

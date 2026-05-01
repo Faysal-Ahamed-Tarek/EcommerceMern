@@ -24,6 +24,13 @@ export interface ISiteConfig extends Document {
   footerEmail?: string;
   footerLocation?: string;
   homeCategories: string[];
+  // SEO site defaults
+  siteUrl?: string;
+  defaultOgImage?: string;
+  defaultMetaDescription?: string;
+  // Admin panel branding
+  adminPanelName?: string;
+  adminPanelLogo?: string;
 }
 
 const SiteConfigSchema = new Schema<ISiteConfig>(
@@ -60,6 +67,11 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
     footerEmail: { type: String, default: 'support@shopbd.com' },
     footerLocation: { type: String, default: 'Dhaka, Bangladesh' },
     homeCategories: { type: [String], default: [] },
+    siteUrl: { type: String },
+    defaultOgImage: { type: String },
+    defaultMetaDescription: { type: String },
+    adminPanelName: { type: String },
+    adminPanelLogo: { type: String },
   },
   { timestamps: true }
 );

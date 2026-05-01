@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import SafeImage from "@/components/ui/SafeImage";
 import Link from "next/link";
 import { z } from "zod";
-import { ShoppingBag, Trash2, ChevronRight } from "lucide-react";
+import { ShoppingBag, Trash2, ChevronRight, Tag, X, Loader2 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -34,6 +34,9 @@ export default function CheckoutPage() {
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZone | null>(null);
   const [deliveryError, setDeliveryError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
 
   const deliveryCharge = DELIVERY_ZONES.find((z) => z.id === deliveryZone)?.charge ?? null;
 
@@ -41,6 +44,31 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
     setErrors((er) => ({ ...er, [name]: undefined }));
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    try {
+      const subtotal = totalAmount();
+      const { data } = await api.post("/coupons/validate", {
+        couponCode: couponCode.trim().toUpperCase(),
+        cartTotal: subtotal,
+        productSlugs: items.map((i) => i.productSlug),
+      });
+      setAppliedCoupon({ code: data.data.code, discountAmount: data.data.discountAmount });
+      toast.success(`Coupon applied! You save ৳${data.data.discountAmount}`);
+      setCouponCode("");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Invalid coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,12 +87,14 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       const subtotalVal = totalAmount();
+      const discount = appliedCoupon?.discountAmount ?? 0;
       const res = await api.post("/orders", {
         ...form,
         items: items.map((i) => ({ productSlug: i.productSlug, title: i.title, variant: i.variant, price: i.price, quantity: i.quantity })),
-        totalAmount: subtotalVal + deliveryCharge,
+        totalAmount: subtotalVal - discount + deliveryCharge,
         deliveryCharge,
         paymentMethod: "cod",
+        ...(appliedCoupon ? { appliedCoupon } : {}),
       });
       clearCart();
       router.push(`/order-confirmation?orderId=${res.data.data.orderId}`);
@@ -92,6 +122,7 @@ export default function CheckoutPage() {
   }
 
   const subtotal = totalAmount();
+  const discount = appliedCoupon?.discountAmount ?? 0;
 
   const FIELDS: { name: keyof CheckoutForm; label: string; placeholder: string; type?: string; textarea?: boolean }[] = [
     { name: "customerName", label: "Full Name", placeholder: "e.g. Rahim Uddin" },
@@ -158,12 +189,55 @@ export default function CheckoutPage() {
             ))}
           </div>
 
+          {/* Coupon input */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <Tag size={14} className="text-green-600" />
+                  <span className="text-sm font-semibold text-green-800 font-mono">{appliedCoupon.code}</span>
+                  <span className="text-sm text-green-700">— Save ৳{appliedCoupon.discountAmount.toLocaleString()}</span>
+                </div>
+                <button onClick={handleRemoveCoupon} className="text-green-600 hover:text-green-800">
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleApplyCoupon())}
+                  placeholder="Coupon code"
+                  maxLength={50}
+                  className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-2 text-sm font-mono focus:outline-none focus:border-green-500 uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || !couponCode.trim()}
+                  className="flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  {couponLoading ? <Loader2 size={14} className="animate-spin" /> : <Tag size={14} />}
+                  Apply
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Totals */}
           <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Subtotal</span>
               <span>৳{subtotal.toLocaleString()}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-sm font-medium text-green-600">
+                <span>Coupon Discount</span>
+                <span>−৳{discount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm font-medium">
               <span className="text-gray-600">Delivery</span>
               <span className={deliveryCharge !== null ? "text-green-600" : "text-gray-400"}>
@@ -174,7 +248,7 @@ export default function CheckoutPage() {
               <span>Total</span>
               <span>
                 {deliveryCharge !== null
-                  ? `৳${(subtotal + deliveryCharge).toLocaleString()}`
+                  ? `৳${(subtotal - discount + deliveryCharge).toLocaleString()}`
                   : "—"}
               </span>
             </div>
@@ -287,7 +361,7 @@ export default function CheckoutPage() {
             {loading
               ? "Placing your order…"
               : deliveryCharge !== null
-              ? `Place Order — ৳${(subtotal + deliveryCharge).toLocaleString()}`
+              ? `Place Order — ৳${(subtotal - discount + deliveryCharge).toLocaleString()}`
               : "Place Order"}
           </button>
         </form>

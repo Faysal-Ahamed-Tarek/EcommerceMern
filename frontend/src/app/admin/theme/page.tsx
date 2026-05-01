@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
-import { Loader2, Palette, RotateCcw } from "lucide-react";
+import { Loader2, Palette, RotateCcw, Building2 } from "lucide-react";
 
 // Same shade generation as ThemeProvider (kept in sync)
 function hexToHsl(hex: string): [number, number, number] {
@@ -67,6 +67,9 @@ export default function AdminThemePage() {
   const [saved, setSaved] = useState("#16a34a");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [adminPanelName, setAdminPanelName] = useState("");
+  const [adminPanelLogo, setAdminPanelLogo] = useState("");
+  const [brandingSaving, setBrandingSaving] = useState(false);
 
   useEffect(() => {
     api.get("/config")
@@ -74,6 +77,8 @@ export default function AdminThemePage() {
         const c = r.data.data?.primaryColor ?? "#16a34a";
         setColor(c);
         setSaved(c);
+        setAdminPanelName(r.data.data?.adminPanelName ?? "");
+        setAdminPanelLogo(r.data.data?.adminPanelLogo ?? "");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -103,6 +108,18 @@ export default function AdminThemePage() {
       toast.error("Failed to save theme");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    setBrandingSaving(true);
+    try {
+      await api.put("/admin/config", { adminPanelName, adminPanelLogo });
+      toast.success("Branding saved — reload the page to see changes");
+    } catch {
+      toast.error("Failed to save branding");
+    } finally {
+      setBrandingSaving(false);
     }
   };
 
@@ -213,6 +230,54 @@ export default function AdminThemePage() {
       <p className="text-xs text-gray-400 mt-4 text-center">
         The color picker gives a live preview. Click "Save Theme" to persist it for all visitors.
       </p>
+
+      {/* Admin Panel Branding */}
+      <div className="flex items-center gap-3 mt-8 mb-4">
+        <Building2 size={22} className="text-indigo-600" />
+        <h2 className="text-xl font-bold text-gray-900">Admin Panel Branding</h2>
+      </div>
+      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Panel Name</label>
+          <input
+            type="text"
+            value={adminPanelName}
+            onChange={(e) => setAdminPanelName(e.target.value)}
+            placeholder="Admin Panel"
+            maxLength={50}
+            className="border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:border-indigo-400"
+          />
+          <p className="text-xs text-gray-400 mt-1">Shown in the sidebar header. Leave blank to use "Admin Panel".</p>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Panel Logo URL</label>
+          <input
+            type="url"
+            value={adminPanelLogo}
+            onChange={(e) => setAdminPanelLogo(e.target.value)}
+            placeholder="https://example.com/logo.png"
+            className="border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:border-indigo-400"
+          />
+          <p className="text-xs text-gray-400 mt-1">Image URL for the sidebar logo (28×28 px recommended).</p>
+        </div>
+        {adminPanelLogo && (
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={adminPanelLogo} alt="preview" className="w-8 h-8 rounded object-contain border border-gray-200" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            <span className="text-xs text-gray-500">Logo preview</span>
+          </div>
+        )}
+        <div className="flex justify-end pt-2 border-t border-gray-100">
+          <button
+            onClick={handleSaveBranding}
+            disabled={brandingSaving}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60"
+          >
+            {brandingSaving && <Loader2 size={14} className="animate-spin" />}
+            Save Branding
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

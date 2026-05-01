@@ -2,8 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { Order, Product } from '../models';
 
 const generateOrderId = async (): Promise<string> => {
-  const count = await Order.countDocuments();
-  return `ORD-${1001 + count}`;
+  const last = await Order.findOne({}, { orderId: 1 }).sort({ createdAt: -1 }).lean();
+  const lastNum = last?.orderId ? parseInt(last.orderId.replace('ORD-', ''), 10) : 1000;
+  const next = isNaN(lastNum) ? Date.now() : lastNum + 1;
+  return `ORD-${next}`;
 };
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {

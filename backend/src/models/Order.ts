@@ -10,6 +10,11 @@ export interface IOrderItem {
   image?: string;
 }
 
+export interface IAppliedCoupon {
+  code: string;
+  discountAmount: number;
+}
+
 export interface IOrder extends Document {
   orderId: string;
   note?: string;
@@ -22,6 +27,7 @@ export interface IOrder extends Document {
   paymentMethod: 'cod';
   paymentStatus: 'pending' | 'paid';
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  appliedCoupon?: IAppliedCoupon;
 }
 
 const OrderSchema = new Schema<IOrder>(
@@ -50,6 +56,10 @@ const OrderSchema = new Schema<IOrder>(
       type: String,
       enum: ['pending', 'confirmed', 'completed', 'cancelled'],
       default: 'pending',
+    },
+    appliedCoupon: {
+      code: { type: String },
+      discountAmount: { type: Number },
     },
   },
   { timestamps: true }

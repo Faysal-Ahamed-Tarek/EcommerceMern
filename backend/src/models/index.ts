@@ -5,6 +5,7 @@ export { default as Review } from './Review';
 export { default as Admin } from './Admin';
 export { default as HeroSlide } from './HeroSlide';
 export { default as SEO } from './SEO';
+export { default as Coupon } from './Coupon';
 export type { ISEO } from './SEO';
 
 export type { IProduct, IProductVariant, IProductImage } from './Product';
@@ -13,3 +14,4 @@ export type { IOrder, IOrderItem } from './Order';
 export type { IReview } from './Review';
 export type { IAdmin } from './Admin';
 export type { IHeroSlide } from './HeroSlide';
+export type { ICoupon } from './Coupon';

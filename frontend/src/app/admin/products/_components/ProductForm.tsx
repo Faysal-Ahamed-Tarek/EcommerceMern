@@ -616,15 +616,19 @@ export default function ProductForm({ initialProduct }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Meta Title">
             <input
-              maxLength={120}
+              maxLength={60}
               placeholder="Defaults to product title"
               value={form.metaTitle}
               onChange={(e) => setForm((f) => ({ ...f, metaTitle: e.target.value }))}
               className={inputCls}
             />
+            <p className={`text-xs mt-1 ${form.metaTitle.length > 60 ? "text-red-500" : "text-gray-400"}`}>
+              {form.metaTitle.length}/60 — 5–60 chars recommended
+            </p>
           </Field>
           <Field label="Canonical URL">
             <input
+              type="url"
               placeholder="https://..."
               value={form.canonicalUrl}
               onChange={(e) => setForm((f) => ({ ...f, canonicalUrl: e.target.value }))}
@@ -633,6 +637,7 @@ export default function ProductForm({ initialProduct }: Props) {
           </Field>
           <Field label="OG Image URL">
             <input
+              type="url"
               placeholder="Defaults to first product image"
               value={form.ogImage}
               onChange={(e) => setForm((f) => ({ ...f, ogImage: e.target.value }))}
@@ -658,7 +663,9 @@ export default function ProductForm({ initialProduct }: Props) {
             onChange={(e) => setForm((f) => ({ ...f, metaDescription: e.target.value }))}
             className={`${inputCls} resize-none`}
           />
-          <p className="text-xs text-gray-400 mt-1">{form.metaDescription.length}/320</p>
+          <p className={`text-xs mt-1 ${form.metaDescription.length > 160 ? "text-amber-500" : "text-gray-400"}`}>
+            {form.metaDescription.length}/320 — Google shows ~160 chars in search results
+          </p>
         </Field>
       </Section>
 
