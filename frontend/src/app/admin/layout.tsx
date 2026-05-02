@@ -4,16 +4,20 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, Package, Tag, ShoppingBag, Star, Palette, LogOut, ChevronDown, ChevronRight, Files, Globe, Ticket } from "lucide-react";
+import {
+  LayoutDashboard, Package, Tag, ShoppingBag, Star, Palette,
+  LogOut, ChevronDown, ChevronRight, Files, Globe, Ticket, UserCircle,
+} from "lucide-react";
 import { api } from "@/lib/api";
 
 const PAGES_LINKS = [
-  { label: "Home",                href: "/admin/pages/home" },
-  { label: "Privacy Policy",      href: "/admin/pages/privacy-policy" },
-  { label: "About Us",            href: "/admin/pages/about" },
-  { label: "Terms & Conditions",  href: "/admin/pages/terms" },
-  { label: "Header",              href: "/admin/pages/header" },
-  { label: "Footer",              href: "/admin/pages/footer" },
+  { label: "Home",               href: "/admin/pages/home" },
+  { label: "Shop",               href: "/admin/pages/shop" },
+  { label: "Header",             href: "/admin/pages/header" },
+  { label: "Footer",             href: "/admin/pages/footer" },
+  { label: "About Us",           href: "/admin/pages/about" },
+  { label: "Privacy Policy",     href: "/admin/pages/privacy-policy" },
+  { label: "Terms & Conditions", href: "/admin/pages/terms" },
 ];
 
 interface NavLink {
@@ -36,19 +40,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminName, setAdminName] = useState("Admin Panel");
   const [adminLogo, setAdminLogo] = useState<string | null>(null);
 
+  // Auth check via API — cookie is verified server-side, no localStorage token
   useEffect(() => {
-    const token = localStorage.getItem("adminToken");
     if (isLoginPage) {
-      if (token) router.replace("/admin/dashboard");
-      setChecking(false);
+      // If already authenticated, send to dashboard
+      api.get("/admin/me")
+        .then(() => router.replace("/admin/dashboard"))
+        .catch(() => {})
+        .finally(() => setChecking(false));
       return;
     }
-    if (!token) {
-      router.replace("/admin/login");
-    } else {
-      setAuthed(true);
-    }
-    setChecking(false);
+    api.get("/admin/me")
+      .then(() => { setAuthed(true); setChecking(false); })
+      .catch(() => { router.replace("/admin/login"); setChecking(false); });
   }, [isLoginPage, router]);
 
   useEffect(() => {
@@ -79,8 +83,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => clearInterval(interval);
   }, [authed, fetchNotifications, fetchBranding]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
+  const handleLogout = async () => {
+    try { await api.post("/admin/logout"); } catch {}
     setAuthed(false);
     router.replace("/admin/login");
   };
@@ -98,6 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Coupons",    href: "/admin/coupons",    icon: Ticket },
     { label: "Theme",      href: "/admin/theme",      icon: Palette },
     { label: "SEO",        href: "/admin/seo",        icon: Globe },
+    { label: "Account",    href: "/admin/user",       icon: UserCircle },
   ];
 
   return (

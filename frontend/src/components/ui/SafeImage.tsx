@@ -12,10 +12,11 @@ interface Props {
   className?: string;
   sizes?: string;
   priority?: boolean;
+  quality?: number;
 }
 
 /* Renders Next Image with a green-tinted fallback div if src is empty or broken */
-export default function SafeImage({ src, alt, fill, width, height, className, sizes, priority }: Props) {
+export default function SafeImage({ src, alt, fill, width, height, className, sizes, priority, quality = 80 }: Props) {
   const [error, setError] = useState(false);
   const validSrc = src && src.trim() !== "";
 
@@ -44,6 +45,7 @@ export default function SafeImage({ src, alt, fill, width, height, className, si
         className={className}
         sizes={sizes}
         priority={priority}
+        quality={quality}
         onError={() => setError(true)}
       />
     );
@@ -58,6 +60,7 @@ export default function SafeImage({ src, alt, fill, width, height, className, si
       className={className}
       sizes={sizes}
       priority={priority}
+      quality={quality}
       onError={() => setError(true)}
     />
   );

@@ -7,8 +7,37 @@ import toast from "react-hot-toast";
 import {
   Plus, Pencil, Trash2, X, Loader2, Check, ImagePlus,
   Eye, EyeOff, Save,
+  Truck, Leaf, ShieldCheck, RotateCcw, Package, Clock,
+  Star, Heart, BadgeCheck, Headphones, Gift, Zap, CreditCard,
+  type LucideIcon,
 } from "lucide-react";
 import type { HeroSlide, PromoPanel, PromoPanelItem, Category, HomeReview } from "@/types";
+
+const BADGE_ICON_OPTIONS: { value: string; label: string; Icon: LucideIcon }[] = [
+  { value: "Truck", label: "Truck (Delivery)", Icon: Truck },
+  { value: "Leaf", label: "Leaf (Natural)", Icon: Leaf },
+  { value: "ShieldCheck", label: "Shield Check (Secure)", Icon: ShieldCheck },
+  { value: "RotateCcw", label: "Rotate (Returns)", Icon: RotateCcw },
+  { value: "Package", label: "Package (Packaging)", Icon: Package },
+  { value: "Clock", label: "Clock (Fast)", Icon: Clock },
+  { value: "Star", label: "Star (Quality)", Icon: Star },
+  { value: "Heart", label: "Heart (Care)", Icon: Heart },
+  { value: "BadgeCheck", label: "Badge Check (Verified)", Icon: BadgeCheck },
+  { value: "Headphones", label: "Headphones (Support)", Icon: Headphones },
+  { value: "Gift", label: "Gift (Offers)", Icon: Gift },
+  { value: "Zap", label: "Zap (Speed)", Icon: Zap },
+  { value: "CreditCard", label: "Credit Card (Payment)", Icon: CreditCard },
+];
+
+const BADGE_ICON_MAP: Record<string, LucideIcon> = Object.fromEntries(
+  BADGE_ICON_OPTIONS.map(({ value, Icon }) => [value, Icon])
+);
+
+interface TrustBadgeItem {
+  icon: string;
+  title: string;
+  desc: string;
+}
 
 interface SlideForm {
   imageUrl: string;
@@ -79,6 +108,15 @@ export default function AdminHomePage() {
   const [row2Slug, setRow2Slug] = useState("");
   const [savingRows, setSavingRows] = useState(false);
 
+  // Trust badges state
+  const [trustBadges, setTrustBadges] = useState<TrustBadgeItem[]>([
+    { icon: "Truck", title: "Free Delivery", desc: "On orders above ৳999" },
+    { icon: "Leaf", title: "100% Natural", desc: "Sourced from trusted farms" },
+    { icon: "ShieldCheck", title: "Secure Payment", desc: "Cash on delivery available" },
+    { icon: "RotateCcw", title: "Easy Returns", desc: "7-day hassle-free returns" },
+  ]);
+  const [savingBadges, setSavingBadges] = useState(false);
+
   // Home reviews state
   const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
   const [reviewModal, setReviewModal] = useState(false);
@@ -122,9 +160,11 @@ export default function AdminHomePage() {
     api.get("/categories").then((r) => setAllCategories(r.data?.data ?? [])).catch(() => {});
     api.get("/config")
       .then((r) => {
-        const cats: string[] = r.data?.data?.homeCategories ?? [];
+        const d = r.data?.data;
+        const cats: string[] = d?.homeCategories ?? [];
         setRow1Slug(cats[0] ?? "");
         setRow2Slug(cats[1] ?? "");
+        if (d?.trustBadges?.length > 0) setTrustBadges(d.trustBadges);
       })
       .catch(() => {});
     api.get("/home-reviews/all").then((r) => setHomeReviews(r.data?.data ?? [])).catch(() => {});
@@ -195,6 +235,22 @@ export default function AdminHomePage() {
     } finally {
       setSavingRows(false);
     }
+  };
+
+  const handleSaveBadges = async () => {
+    setSavingBadges(true);
+    try {
+      await api.put("/admin/config", { trustBadges });
+      toast.success("Trust badges saved");
+    } catch {
+      toast.error("Failed to save trust badges");
+    } finally {
+      setSavingBadges(false);
+    }
+  };
+
+  const updateBadge = (index: number, field: keyof TrustBadgeItem, value: string) => {
+    setTrustBadges((prev) => prev.map((b, i) => i === index ? { ...b, [field]: value } : b));
   };
 
   const openNewReview = () => { setEditingReview(null); setReviewForm(emptyReviewForm()); setReviewModal(true); };
@@ -468,6 +524,67 @@ export default function AdminHomePage() {
             >
               {savingRows ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Category Rows
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Trust Badges ─────────────────────────────────────────── */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Trust Badges</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Four badges shown on the home page below the hero banner</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+          {trustBadges.map((badge, idx) => {
+            const Icon = BADGE_ICON_MAP[badge.icon] ?? ShieldCheck;
+            return (
+              <div key={idx} className="grid grid-cols-[40px_160px_1fr_1fr] items-center gap-3">
+                {/* Live icon preview */}
+                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                  <Icon size={20} className="text-green-600" strokeWidth={1.75} />
+                </div>
+
+                {/* Icon picker */}
+                <select
+                  value={badge.icon}
+                  onChange={(e) => updateBadge(idx, "icon", e.target.value)}
+                  className={inputCls}
+                >
+                  {BADGE_ICON_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+
+                {/* Title */}
+                <input
+                  value={badge.title}
+                  onChange={(e) => updateBadge(idx, "title", e.target.value)}
+                  placeholder="Title"
+                  className={inputCls}
+                />
+
+                {/* Description */}
+                <input
+                  value={badge.desc}
+                  onChange={(e) => updateBadge(idx, "desc", e.target.value)}
+                  placeholder="Description"
+                  className={inputCls}
+                />
+              </div>
+            );
+          })}
+
+          <div className="flex justify-end pt-2 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={handleSaveBadges}
+              disabled={savingBadges}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            >
+              {savingBadges ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save Trust Badges
             </button>
           </div>
         </div>

@@ -1,67 +1,88 @@
+# Product Detail Client Optimization Prompt
 
-# Claude Project Hardening Prompt
+Use this prompt to optimize the product details experience at `/products/[slug]` (for example: `http://localhost:3000/products/usb-c-fast-charger-65w`).
 
-You are working on a full-stack e-commerce app in `backend/` and `frontend/`. Your job is to harden the entire project so it survives real traffic, avoids obvious bottlenecks, and stays maintainable as the codebase grows.
+The page includes:
+- Product details and gallery
+- Variant selection
+- Add to cart / buy now
+- Reviews with optional image upload
+
+## Core Rule
+
+If any optimization task is already implemented in the project, do not implement it again.
+
+Before making changes:
+1. Audit existing code paths and behavior.
+2. Mark each item as `Already Done` or `Needs Work`.
+3. Apply only missing optimizations.
 
 ## Goal
 
-Review the whole project and apply practical performance, reliability, and security improvements without changing the product behavior unless a change is needed to prevent crashes or traffic-related failure.
+Make `ProductDetailClient.tsx` faster and smoother without removing existing features.
 
-## Priority Risks To Fix
+## Optimization Checklist
 
-1. Database overload
-- Find unbounded reads, expensive filters, missing indexes, and slow queries.
-- Never leave collection reads unbounded when the result can grow large.
-- Add pagination, limits, projections, and indexes where the query pattern needs them.
+### 1. Product Data Loading
+- Prevent unnecessary re-renders in `ProductDetailClient.tsx`.
+- Keep product UI render independent from review loading.
+- Memoize derived values (selected variant price, stock status, computed discount, etc.).
+- Load only critical product data for first paint; defer secondary content.
+- Avoid duplicate requests for the same product slug.
 
-2. N+1 query patterns
-- Look for repeated queries inside loops or per-item fetches.
-- Replace them with `populate()`, batched queries, or aggregation when appropriate.
+### 2. Client Rendering and State
+- Split large component sections into memoized subcomponents when useful.
+- Keep state localized (do not trigger parent re-renders unnecessarily).
+- Use stable callbacks (`useCallback`) for frequently passed handlers.
+- Use `useMemo` for expensive transformations.
 
-3. Too many repeated reads
-- Add caching for hot, read-heavy, low-change data where it makes sense.
-- Prefer Redis if the project already supports it; otherwise add the smallest safe cache layer that fits the current architecture.
+### 3. Image Performance
+- Keep the hero product image prioritized.
+- Lazy-load non-critical gallery thumbnails and below-the-fold images.
+- Ensure responsive `sizes` and efficient format delivery (for example `f_auto,q_auto` where applicable).
+- Avoid layout shifts by preserving image dimensions/aspect ratio.
 
-## What To Inspect
+### 4. Review Section Performance
+- Load first review page only (max 4 items), then load more on demand.
+- Do not refetch all review metadata after submit.
+- Refresh only review list state after successful review post.
+- Keep review modal isolated so opening/typing does not rerender the whole product page.
 
-- `backend/src/controllers/`
-- `backend/src/models/`
-- `backend/src/routes/`
-- `backend/src/middleware/`
-- `backend/src/lib/db.ts`
-- `frontend/src/app/`
-- `frontend/src/components/`
-- `frontend/src/lib/api.ts`
-- `frontend/src/store/`
+### 5. Review Upload Flow
+- Validate review text/rating/image before submit.
+- Show clear loading/progress state during Cloudinary interaction and submission.
+- Prevent duplicate submissions while request is in flight.
+- Keep image upload optional and non-blocking for text-only reviews.
 
-## Implementation Rules
+### 6. API and Backend Efficiency
+- Ensure product detail endpoint returns only required fields.
+- Ensure review endpoint supports pagination and limit (`4` by default).
+- Add/verify indexes for:
+	- Product slug
+	- Review product reference
+	- CreatedAt for review sorting (if used)
+- Avoid N+1 patterns and repeated count queries where unnecessary.
 
-- Fix root causes, not symptoms.
-- Keep changes minimal and targeted.
-- Preserve existing API contracts unless a breaking change is necessary for safety.
-- Prefer scalable defaults: pagination, indexes, caching, validation, and timeouts.
-- Avoid synchronous work in request handlers.
-- Do not introduce unnecessary complexity or new dependencies unless they provide clear value.
+### 7. UX Resilience
+- Add lightweight skeletons/placeholders for deferred sections.
+- Add graceful empty/error states for reviews.
+- Add timeout/error fallback UI for slow networks.
+
+## Constraints
+
+- Preserve all current features:
+	- Add to cart
+	- Buy now
+	- Variant selection
+	- Review submission
+	- Optional review image upload
+- Prefer focused optimizations over full rewrites.
+- Do not change behavior unrelated to performance.
 
 ## Expected Outcome
 
-After your pass, the project should:
-    
-- Avoid unbounded database reads.
-- Reduce duplicate queries and repeated hot reads.
-
-## Working Style
-
-- Start with the highest-risk paths first.
-- Make the smallest safe edit that improves resilience.
-- If you add a new optimization, explain why it belongs there and how it reduces traffic risk.
-- Validate the touched area after each meaningful change.
-- If a broader refactor is needed, split it into small steps instead of one large rewrite.
-
-## Final Check
-
-Before finishing, confirm that no obvious traffic-crash risks remain in the modified areas and summarize:
-
-- what was hardened,
-- what remains risky,
-- and what should be monitored next in production.
+- Faster initial render for product details.
+- Reduced client CPU/memory usage.
+- Smoother interactions while switching variants and submitting reviews.
+- Improved perceived performance on slower connections.
+- No duplicate work on items already optimized.

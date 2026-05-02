@@ -1,42 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import type { FC } from "react";
 import Link from "next/link";
-import { Phone, Mail, MapPin } from "lucide-react";
-import { api } from "@/lib/api";
+import {
+  Phone, Mail, MapPin,
+  Truck, Leaf, ShieldCheck, RotateCcw, Package, Clock,
+  Star, Heart, BadgeCheck, Headphones, Gift, Zap, CreditCard,
+  type LucideIcon,
+} from "lucide-react";
+import { useSiteData } from "@/context/SiteDataContext";
 
-interface SocialLink {
-  platform: string;
-  url: string;
-  isActive: boolean;
-}
+const ICON_MAP: Record<string, LucideIcon> = {
+  Truck, Leaf, ShieldCheck, RotateCcw, Package, Clock,
+  Star, Heart, BadgeCheck, Headphones, Gift, Zap, CreditCard,
+};
 
-interface FooterConfig {
-  footerLogo?: string;
-  footerDescription: string;
-  socialLinks: SocialLink[];
-  copyrightText: string;
-  paymentMethodsText: string;
-  footerPhone: string;
-  footerEmail: string;
-  footerLocation: string;
-}
+const FacebookIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+const InstagramIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
+const LinkedInIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect x="2" y="9" width="4" height="12" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
 
-const DEFAULTS: FooterConfig = {
-  footerDescription: "Your trusted marketplace for fresh, organic, and quality products. Delivered across Bangladesh with love.",
-  socialLinks: [],
-  copyrightText: "© {year} ShopBD. All rights reserved.",
-  paymentMethodsText: "Payment: Cash on Delivery 💵",
-  footerPhone: "+880 1XXX-XXXXXX",
-  footerEmail: "support@shopbd.com",
-  footerLocation: "Dhaka, Bangladesh",
+const SOCIAL_ICON_MAP: Record<string, FC> = {
+  Facebook: FacebookIcon,
+  Instagram: InstagramIcon,
+  LinkedIn: LinkedInIcon,
 };
 
 const QUICK_LINKS = [
-  { label: "Home",             href: "/" },
-  { label: "All Products",     href: "/products" },
-  { label: "About Us",         href: "/about" },
-  { label: "Privacy Policy",   href: "/privacy-policy" },
+  { label: "Home",               href: "/" },
+  { label: "All Products",       href: "/products" },
+  { label: "About Us",           href: "/about" },
+  { label: "Privacy Policy",     href: "/privacy-policy" },
   { label: "Terms & Conditions", href: "/terms" },
 ];
 
@@ -45,27 +54,7 @@ function resolveCopyright(text: string) {
 }
 
 export default function Footer() {
-  const [config, setConfig] = useState<FooterConfig>(DEFAULTS);
-
-  useEffect(() => {
-    api.get("/config")
-      .then((r) => {
-        const d = r.data?.data;
-        if (!d) return;
-        setConfig({
-          footerLogo: d.footerLogo || undefined,
-          footerDescription: d.footerDescription || DEFAULTS.footerDescription,
-          socialLinks: d.socialLinks || [],
-          copyrightText: d.copyrightText || DEFAULTS.copyrightText,
-          paymentMethodsText: d.paymentMethodsText || DEFAULTS.paymentMethodsText,
-          footerPhone: d.footerPhone || DEFAULTS.footerPhone,
-          footerEmail: d.footerEmail || DEFAULTS.footerEmail,
-          footerLocation: d.footerLocation || DEFAULTS.footerLocation,
-        });
-      })
-      .catch(() => {});
-  }, []);
-
+  const { config } = useSiteData();
   const activeSocials = config.socialLinks.filter((s) => s.isActive);
 
   return (
@@ -86,19 +75,23 @@ export default function Footer() {
           </div>
           <p className="text-sm text-gray-500 leading-relaxed">{config.footerDescription}</p>
           {activeSocials.length > 0 && (
-            <div className="flex gap-3 pt-1 flex-wrap">
-              {activeSocials.map((s) => (
-                <a
-                  key={s.platform}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gray-100 hover:bg-green-600 transition-colors text-gray-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold"
-                  aria-label={s.platform}
-                >
-                  {s.platform}
-                </a>
-              ))}
+            <div className="flex gap-2 pt-1">
+              {activeSocials.map((s) => {
+                const Icon = SOCIAL_ICON_MAP[s.platform];
+                if (!Icon) return null;
+                return (
+                  <a
+                    key={s.platform}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.platform}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-green-600 text-gray-600 hover:text-white transition-colors"
+                  >
+                    <Icon />
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>
@@ -144,20 +137,20 @@ export default function Footer() {
         <div>
           <h4 className="text-gray-900 font-semibold mb-4 text-sm uppercase tracking-wider">We Assure</h4>
           <div className="space-y-2.5">
-            {[
-              { icon: "🚚", label: "Free Delivery",    sub: "Orders above ৳999" },
-              { icon: "🔒", label: "Secure Payment",   sub: "100% safe checkout" },
-              { icon: "↩️", label: "Easy Returns",     sub: "7-day return policy" },
-              { icon: "✅", label: "Genuine Products",  sub: "Quality guaranteed" },
-            ].map((b) => (
-              <div key={b.label} className="flex items-center gap-3 text-sm">
-                <span className="text-base">{b.icon}</span>
-                <div>
-                  <span className="text-gray-800 font-medium">{b.label}</span>
-                  <span className="text-gray-400 text-xs block">{b.sub}</span>
+            {config.trustBadges.map((b) => {
+              const Icon = ICON_MAP[b.icon] ?? ShieldCheck;
+              return (
+                <div key={b.title} className="flex items-center gap-3 text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                    <Icon size={16} className="text-green-600" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <span className="text-gray-800 font-medium">{b.title}</span>
+                    <span className="text-gray-400 text-xs block">{b.desc}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

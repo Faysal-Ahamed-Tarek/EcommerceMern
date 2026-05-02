@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
@@ -11,7 +12,7 @@ interface Props {
   product: Product;
 }
 
-export default function ProductCard({ product }: Props) {
+const ProductCard = memo(function ProductCard({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
 
   const hasVariants = product.variants && product.variants.length > 0;
@@ -115,4 +116,6 @@ export default function ProductCard({ product }: Props) {
       </div>
     </article>
   );
-}
+});
+
+export default ProductCard;

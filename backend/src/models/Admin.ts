@@ -5,7 +5,11 @@ export interface IAdmin extends Document {
   email: string;
   password: string;
   role: 'admin';
+  passwordChangedAt?: Date;
+  loginAttempts: number;
+  lockUntil?: Date;
   comparePassword(candidate: string): Promise<boolean>;
+  isLocked(): boolean;
 }
 
 const AdminSchema = new Schema<IAdmin>(
@@ -13,6 +17,9 @@ const AdminSchema = new Schema<IAdmin>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['admin'], default: 'admin' },
+    passwordChangedAt: { type: Date },
+    loginAttempts: { type: Number, default: 0 },
+    lockUntil: { type: Date },
   },
   { timestamps: true }
 );
@@ -25,6 +32,10 @@ AdminSchema.pre('save', async function () {
 
 AdminSchema.methods.comparePassword = function (candidate: string): Promise<boolean> {
   return bcrypt.compare(candidate, this.password);
+};
+
+AdminSchema.methods.isLocked = function (): boolean {
+  return !!(this.lockUntil && this.lockUntil > new Date());
 };
 
 const Admin = mongoose.model<IAdmin>('Admin', AdminSchema);

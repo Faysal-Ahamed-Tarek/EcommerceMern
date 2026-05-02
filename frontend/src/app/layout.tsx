@@ -10,26 +10,33 @@ const mavenPro = Maven_Pro({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: { default: "ShopBD – Fresh & Organic", template: "%s | ShopBD" },
-  description: "Quality organic products delivered across Bangladesh. Shop fresh, shop healthy.",
-  openGraph: { siteName: "ShopBD", type: "website" },
-};
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-async function getPrimaryColor(): Promise<string> {
+async function getConfig() {
   try {
-    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
     const res = await fetch(`${API}/config`, { next: { revalidate: 60 } });
-    if (!res.ok) return "#16a34a";
-    const json = await res.json();
-    return json.data?.primaryColor ?? "#16a34a";
+    if (!res.ok) return null;
+    return (await res.json()).data ?? null;
   } catch {
-    return "#16a34a";
+    return null;
   }
 }
 
+export async function generateMetadata(): Promise<Metadata> {
+  const d = await getConfig();
+  const title = d?.siteTitle || "ShopBD – Fresh & Organic";
+  const siteName = d?.storeName || "ShopBD";
+  return {
+    title: { default: title, template: `%s | ${siteName}` },
+    description: "Quality organic products delivered across Bangladesh. Shop fresh, shop healthy.",
+    openGraph: { siteName, type: "website" },
+    ...(d?.favicon ? { icons: { icon: d.favicon } } : {}),
+  };
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const primaryColor = await getPrimaryColor();
+  const d = await getConfig();
+  const primaryColor = d?.primaryColor ?? "#16a34a";
 
   return (
     <html lang="en" className={`${mavenPro.variable} h-full`}>

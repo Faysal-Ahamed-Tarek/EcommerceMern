@@ -83,7 +83,14 @@ const ProductSchema = new Schema<IProduct>(
   { timestamps: true }
 );
 
-ProductSchema.index({ category: 1 });
+ProductSchema.index({ status: 1, category: 1 });
+ProductSchema.index({ status: 1, isFeatured: 1 });
+ProductSchema.index({ status: 1, isTopSelling: 1 });
+ProductSchema.index({ status: 1, basePrice: 1 });
+ProductSchema.index({ status: 1, order: 1 });
+// Covers queries that filter by both category and price range simultaneously
+ProductSchema.index({ status: 1, category: 1, basePrice: 1 });
+ProductSchema.index({ title: 'text', description: 'text' });
 
 ProductSchema.pre('save', async function () {
   if (!this.isModified('title') && this.slug) return;

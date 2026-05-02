@@ -31,11 +31,14 @@ export default function AdminLoginPage() {
     }
     setLoading(true);
     try {
-      const res = await api.post("/admin/login", form);
-      localStorage.setItem("adminToken", res.data.token);
+      await api.post("/admin/login", form);
+      // Cookie is set by the server — no localStorage needed
       router.push("/admin/dashboard");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? "Invalid credentials");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Invalid credentials";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

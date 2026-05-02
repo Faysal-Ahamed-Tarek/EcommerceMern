@@ -4,37 +4,20 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ShoppingCart, Phone, Menu, X, Search, Tag, Store,
+  ShoppingCart, Menu, X, Search, Store,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
-import { api } from "@/lib/api";
-import type { Category } from "@/types";
-
-const DEFAULT_MARQUEE = [
-  "🚚 Free delivery on orders above ৳999",
-  "Cash on Delivery available across Bangladesh",
-];
+import { useSiteData } from "@/context/SiteDataContext";
 
 export default function Header() {
   const router = useRouter();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [marqueeTexts, setMarqueeTexts] = useState<string[]>(DEFAULT_MARQUEE);
-  const [headerLogo, setHeaderLogo] = useState<string>("");
+  const { categories, config } = useSiteData();
+  const marqueeTexts = config.marqueeTexts;
+  const headerLogo = config.headerLogo ?? "";
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const totalItems = useCartStore((s) => s.totalItems());
-
-  useEffect(() => {
-    api.get("/categories").then((r) => setCategories(r.data.data ?? [])).catch(() => {});
-    api.get("/config")
-      .then((r) => {
-        const d = r.data?.data;
-        if (d?.marqueeTexts?.length > 0) setMarqueeTexts(d.marqueeTexts);
-        if (d?.headerLogo) setHeaderLogo(d.headerLogo);
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -110,14 +93,6 @@ export default function Header() {
               className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
             >
               <Store size={14} /> Shop
-            </Link>
-
-            {/* Offer */}
-            <Link
-              href="/products?offer=true"
-              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
-            >
-              <Tag size={14} /> Offer
             </Link>
 
             {/* Cart */}
@@ -215,14 +190,6 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Mobile contact */}
-            <a
-              href="tel:+8801XXXXXXXXX"
-              className="flex items-center gap-2 text-sm text-gray-600 border-t border-gray-100 pt-3"
-            >
-              <Phone size={15} className="text-green-600" />
-              Support: +880 1XXX-XXXXXX
-            </a>
           </div>
         )}
       </header>

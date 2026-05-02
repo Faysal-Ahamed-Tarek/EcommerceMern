@@ -25,17 +25,29 @@ export default function AdminOrderReceiptPage() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [storeName, setStoreName]     = useState("ShopBD");
+  const [storeTagline, setStoreTagline] = useState("");
+  const [headerLogo, setHeaderLogo]   = useState("");
 
   useEffect(() => {
-    api
-      .get(`/orders/${id}`)
-      .then((res) => setOrder(res.data.data))
+    Promise.all([
+      api.get(`/orders/${id}`),
+      api.get("/config"),
+    ])
+      .then(([orderRes, cfgRes]) => {
+        setOrder(orderRes.data.data);
+        const d = cfgRes.data?.data;
+        if (d?.storeName)    setStoreName(d.storeName);
+        if (d?.storeTagline) setStoreTagline(d.storeTagline);
+        if (d?.headerLogo)   setHeaderLogo(d.headerLogo);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
     if (order) {
+      document.title = `Receipt-${order.orderId}`;
       const t = setTimeout(() => window.print(), 500);
       return () => clearTimeout(t);
     }
@@ -62,6 +74,7 @@ export default function AdminOrderReceiptPage() {
 
   const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
   const delivery = order.deliveryCharge ?? 0;
+  const shortId = order.orderId.replace("ORD-", "").slice(-6);
 
   return (
     <>
@@ -97,12 +110,19 @@ export default function AdminOrderReceiptPage() {
       >
         {/* Store header */}
         <div className="bg-green-50 border-b border-green-100 px-6 py-5 flex items-start gap-4">
-          <div className="w-14 h-14 bg-white rounded-xl border border-green-200 flex items-center justify-center shrink-0">
-            <span className="text-2xl">🌿</span>
+          <div className="w-14 h-14 bg-white rounded-xl border border-green-200 flex items-center justify-center shrink-0 overflow-hidden">
+            {headerLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={headerLogo} alt={storeName} className="w-full h-full object-contain p-1" />
+            ) : (
+              <span className="text-lg font-extrabold text-green-700">
+                {storeName.slice(0, 2).toUpperCase()}
+              </span>
+            )}
           </div>
           <div>
-            <h1 className="text-xl font-extrabold text-gray-900">Herblife</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Natural Health Products</p>
+            <h1 className="text-xl font-extrabold text-gray-900">{storeName}</h1>
+            {storeTagline && <p className="text-sm text-gray-500 mt-0.5">{storeTagline}</p>}
             <p className="text-xs text-gray-400 mt-1">Cash on Delivery · Bangladesh</p>
           </div>
         </div>
@@ -111,7 +131,7 @@ export default function AdminOrderReceiptPage() {
         <div className="px-6 py-4 border-b border-gray-100 flex flex-wrap gap-6 text-sm">
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Bill ID</p>
-            <p className="font-bold text-gray-900">#{order.orderId.replace("ORD-", "")}</p>
+            <p className="font-bold text-gray-900">#{shortId}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Order ID</p>

@@ -6,9 +6,23 @@ export interface ISocialLink {
   isActive: boolean;
 }
 
+export interface ITrustBadge {
+  icon: string;
+  title: string;
+  desc: string;
+}
+
+export interface IDeliveryZone {
+  label: string;
+  charge: number;
+}
+
 export interface ISiteConfig extends Document {
   primaryColor: string;
   storeName?: string;
+  storeTagline?: string;
+  siteTitle?: string;
+  favicon?: string;
   storeAddress?: string;
   storePhone?: string;
   storeEmail?: string;
@@ -24,6 +38,8 @@ export interface ISiteConfig extends Document {
   footerEmail?: string;
   footerLocation?: string;
   homeCategories: string[];
+  trustBadges: ITrustBadge[];
+  deliveryZones: IDeliveryZone[];
   // SEO site defaults
   siteUrl?: string;
   defaultOgImage?: string;
@@ -37,6 +53,9 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
   {
     primaryColor: { type: String, default: '#16a34a' },
     storeName: { type: String },
+    storeTagline: { type: String },
+    siteTitle: { type: String },
+    favicon: { type: String },
     storeAddress: { type: String },
     storePhone: { type: String },
     storeEmail: { type: String },
@@ -67,6 +86,22 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
     footerEmail: { type: String, default: 'support@shopbd.com' },
     footerLocation: { type: String, default: 'Dhaka, Bangladesh' },
     homeCategories: { type: [String], default: [] },
+    deliveryZones: {
+      type: [{ label: { type: String, required: true }, charge: { type: Number, required: true } }],
+      default: [
+        { label: 'Inside Dhaka', charge: 60 },
+        { label: 'Outside Dhaka', charge: 120 },
+      ],
+    },
+    trustBadges: {
+      type: [{ icon: { type: String, required: true }, title: { type: String, required: true }, desc: { type: String, required: true } }],
+      default: [
+        { icon: 'Truck', title: 'Free Delivery', desc: 'On orders above ৳999' },
+        { icon: 'Leaf', title: '100% Natural', desc: 'Sourced from trusted farms' },
+        { icon: 'ShieldCheck', title: 'Secure Payment', desc: 'Cash on delivery available' },
+        { icon: 'RotateCcw', title: 'Easy Returns', desc: '7-day hassle-free returns' },
+      ],
+    },
     siteUrl: { type: String },
     defaultOgImage: { type: String },
     defaultMetaDescription: { type: String },

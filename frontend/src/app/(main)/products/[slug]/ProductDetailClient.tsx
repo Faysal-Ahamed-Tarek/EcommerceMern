@@ -105,6 +105,7 @@ function ReviewFormModal({
   const overlayRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({ customerName: "", rating: 5, comment: "", imageUrl: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [widgetUploading, setWidgetUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -212,16 +213,22 @@ function ReviewFormModal({
                 onSuccess={(result: unknown) => {
                   const info = (result as { info?: { secure_url?: string } })?.info;
                   if (info?.secure_url) setForm((f) => ({ ...f, imageUrl: info.secure_url! }));
+                  setWidgetUploading(false);
                 }}
+                onError={() => setWidgetUploading(false)}
                 options={{ resourceType: "image", multiple: false }}
               >
                 {({ open }) => (
                   <button
                     type="button"
-                    onClick={() => open()}
-                    className="flex items-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-500 hover:border-green-400 hover:text-green-600 transition-colors"
+                    onClick={() => { setWidgetUploading(true); open(); }}
+                    disabled={widgetUploading}
+                    className="flex items-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-500 hover:border-green-400 hover:text-green-600 transition-colors disabled:opacity-60"
                   >
-                    <ImagePlus size={15} /> Upload Photo
+                    {widgetUploading
+                      ? <><Loader2 size={15} className="animate-spin" /> Opening widget…</>
+                      : <><ImagePlus size={15} /> Upload Photo</>
+                    }
                   </button>
                 )}
               </CldUploadWidget>
@@ -238,11 +245,11 @@ function ReviewFormModal({
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || widgetUploading}
               className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-60"
             >
               {submitting && <Loader2 size={14} className="animate-spin" />}
-              Submit Review
+              {widgetUploading ? "Uploading photo…" : "Submit Review"}
             </button>
           </div>
         </form>
@@ -257,24 +264,35 @@ export default function ProductDetailClient({ product }: Props) {
 
   const [mainImage, setMainImage] = useState(product.images[0]?.cloudinaryUrl ?? "");
   const [qty, setQty] = useState(1);
-
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const toggleSection = (key: string) =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState(false);
   const [visibleCount, setVisibleCount] = useState(REVIEWS_PER_PAGE);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const fetchReviews = useCallback(async () => {
+    setReviewsError(false);
+    setReviewsLoading(true);
     try {
       const res = await api.get(`/reviews/product/${product.slug}`);
       setReviews(res.data.data ?? []);
-    } catch { /* silently ignore */ }
+    } catch {
+      setReviewsError(true);
+    } finally {
+      setReviewsLoading(false);
+    }
   }, [product.slug]);
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  // Defer review fetch to after first paint so the product UI is immediately interactive
+  useEffect(() => {
+    const id = setTimeout(fetchReviews, 0);
+    return () => clearTimeout(id);
+  }, [fetchReviews]);
 
   const variantGroups = useMemo(() => {
     if (!product.variants || product.variants.length === 0) return [];
@@ -302,28 +320,42 @@ export default function ProductDetailClient({ product }: Props) {
 
   const primarySelected = hasVariants ? Object.values(selectedVariants)[0] : null;
 
-  const displayPrice = hasVariants
+  const displayPrice = useMemo(() => hasVariants
     ? primarySelected
       ? primarySelected.discountPrice > 0 ? primarySelected.discountPrice : primarySelected.price
       : 0
-    : product.DiscountPrice > 0 ? product.DiscountPrice : product.basePrice;
+    : product.DiscountPrice > 0 ? product.DiscountPrice : product.basePrice,
+  [hasVariants, primarySelected, product.DiscountPrice, product.basePrice]);
 
-  const baseDisplayPrice = hasVariants ? primarySelected?.price ?? 0 : product.basePrice;
+  const baseDisplayPrice = useMemo(() =>
+    hasVariants ? primarySelected?.price ?? 0 : product.basePrice,
+  [hasVariants, primarySelected, product.basePrice]);
 
-  const hasDiscount = hasVariants
+  const hasDiscount = useMemo(() => hasVariants
     ? !!primarySelected && primarySelected.discountPrice > 0 && primarySelected.discountPrice < primarySelected.price
-    : product.DiscountPrice > 0 && product.DiscountPrice < product.basePrice;
+    : product.DiscountPrice > 0 && product.DiscountPrice < product.basePrice,
+  [hasVariants, primarySelected, product.DiscountPrice, product.basePrice]);
 
-  const discountPct =
+  const discountPct = useMemo(() =>
     hasDiscount && baseDisplayPrice > 0
       ? Math.round(((baseDisplayPrice - displayPrice) / baseDisplayPrice) * 100)
-      : 0;
+      : 0,
+  [hasDiscount, baseDisplayPrice, displayPrice]);
 
-  const sanitizedDesc = sanitize(product.description);
+  const sanitizedDesc = useMemo(() => sanitize(product.description), [product.description]);
+  const sanitizedHowToUse = useMemo(
+    () => (product.howToUse ? sanitize(product.howToUse) : ""),
+    [product.howToUse]
+  );
+  const sanitizedIngredients = useMemo(
+    () => (product.ingredients ? sanitize(product.ingredients) : ""),
+    [product.ingredients]
+  );
 
-  const variantLabel = hasVariants
+  const variantLabel = useMemo(() => hasVariants
     ? Object.values(selectedVariants).map((v) => v.name).join(" / ")
-    : "Default";
+    : "Default",
+  [hasVariants, selectedVariants]);
 
   const handleAddToCart = () => {
     addItem({
@@ -342,11 +374,11 @@ export default function ProductDetailClient({ product }: Props) {
     router.push("/checkout");
   };
 
-  const whatsappMsg = encodeURIComponent(
+  const whatsappMsg = useMemo(() => encodeURIComponent(
     `Hi, I want to order:\n*${product.title}*${hasVariants ? `\nVariant: ${variantLabel}` : ""}\nQty: ${qty}`
-  );
+  ), [product.title, hasVariants, variantLabel, qty]);
 
-  const visibleReviews = reviews.slice(0, visibleCount);
+  const visibleReviews = useMemo(() => reviews.slice(0, visibleCount), [reviews, visibleCount]);
   const hasMoreReviews = reviews.length > visibleCount;
 
   return (
@@ -451,7 +483,7 @@ export default function ProductDetailClient({ product }: Props) {
                   {openSections["howToUse"] && (
                     <div
                       className="px-4 py-4 prose prose-sm max-w-none text-gray-700"
-                      dangerouslySetInnerHTML={{ __html: sanitize(product.howToUse) }}
+                      dangerouslySetInnerHTML={{ __html: sanitizedHowToUse }}
                     />
                   )}
                 </div>
@@ -471,7 +503,7 @@ export default function ProductDetailClient({ product }: Props) {
                   {openSections["ingredients"] && (
                     <div
                       className="px-4 py-4 prose prose-sm max-w-none text-gray-700 font-sans"
-                      dangerouslySetInnerHTML={{ __html: sanitize(product.ingredients) }}
+                      dangerouslySetInnerHTML={{ __html: sanitizedIngredients }}
                     />
                   )}
                 </div>
@@ -602,7 +634,33 @@ export default function ProductDetailClient({ product }: Props) {
           </button>
         </div>
 
-        {reviews.length === 0 ? (
+        {reviewsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="p-5 sm:p-6 bg-gray-50 rounded-2xl animate-pulse space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-3 bg-gray-200 rounded w-28" />
+                    <div className="h-2.5 bg-gray-200 rounded w-16" />
+                  </div>
+                </div>
+                <div className="h-3 bg-gray-200 rounded w-full" />
+                <div className="h-3 bg-gray-200 rounded w-5/6" />
+              </div>
+            ))}
+          </div>
+        ) : reviewsError ? (
+          <div className="text-center py-10" role="alert">
+            <p className="text-sm text-gray-500 mb-3">Could not load reviews.</p>
+            <button
+              onClick={fetchReviews}
+              className="text-green-600 text-sm font-semibold hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        ) : reviews.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
             <p className="text-sm">No reviews yet. Be the first to review!</p>
             <button
@@ -655,6 +713,7 @@ export default function ProductDetailClient({ product }: Props) {
                     <img
                       src={r.imageUrl}
                       alt="Review"
+                      loading="lazy"
                       onClick={() => setLightboxUrl(r.imageUrl!)}
                       className="w-20 h-20 object-cover rounded-xl border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
                     />

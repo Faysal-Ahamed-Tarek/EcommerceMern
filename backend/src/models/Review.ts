@@ -29,8 +29,7 @@ const ReviewSchema = new Schema<IReview>(
   { timestamps: true }
 );
 
-ReviewSchema.index({ productSlug: 1 });
-ReviewSchema.index({ status: 1 });
+ReviewSchema.index({ productSlug: 1, status: 1, createdAt: -1 });
 
 const Review = mongoose.model<IReview>('Review', ReviewSchema);
 export default Review;

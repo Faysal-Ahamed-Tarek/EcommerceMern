@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 
 import connectDB from './lib/db';
 import { errorHandler } from './middleware/errorHandler';
@@ -24,10 +26,23 @@ import { getStaticPage } from './controllers/staticPageController';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(compression());
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: (process.env.ADMIN_ALLOWED_ORIGINS || 'http://localhost:3000').split(',').map(s => s.trim()),
+  credentials: true,
+}));
 app.use(morgan('dev'));
 app.use(express.json());
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+});
+app.use('/api/', apiLimiter);
 
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);

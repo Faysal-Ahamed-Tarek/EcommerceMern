@@ -2,23 +2,29 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Admin } from '../models';
 
-const EMAIL = 'admin@ecommerce.com';
-const PASSWORD = 'Admin@1234';
+const ADMINS = [
+  { email: 'anwarmdnoor@gmail.com', password: 'S9!vQ2#nL7@tR4$p' },
+  { email: 'jupremiumteam1@gmail.com', password: 'K3^mZ8&xP1!dW6@q' },
+];
 
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI as string);
 
-  const existing = await Admin.findOne({ email: EMAIL });
-  if (existing) {
-    console.log('✅ Admin already exists:', EMAIL);
-    await mongoose.disconnect();
-    return;
+  // Remove all existing admins
+  const deleted = await Admin.deleteMany({});
+  console.log(`🗑️  Removed ${deleted.deletedCount} existing admin(s)`);
+
+  // Create fresh admins (passwords are hashed by the pre-save hook)
+  for (const { email, password } of ADMINS) {
+    await Admin.create({ email, password });
+    console.log(`✅ Created admin: ${email}`);
   }
 
-  await Admin.create({ email: EMAIL, password: PASSWORD });
-  console.log('✅ Admin created successfully');
-  console.log('   Email   :', EMAIL);
-  console.log('   Password:', PASSWORD);
+  console.log('\n🔐 Login credentials:');
+  for (const { email, password } of ADMINS) {
+    console.log(`   ${email}  →  ${password}`);
+  }
+
   await mongoose.disconnect();
 }
 

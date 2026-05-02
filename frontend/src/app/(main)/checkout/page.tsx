@@ -7,6 +7,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { ShoppingBag, Trash2, ChevronRight, Tag, X, Loader2 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useSiteData } from "@/context/SiteDataContext";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -19,26 +20,22 @@ const checkoutSchema = z.object({
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
-const DELIVERY_ZONES = [
-  { id: "inside", label: "Inside Dhaka", charge: 60 },
-  { id: "outside", label: "Outside Dhaka", charge: 120 },
-] as const;
-
-type DeliveryZone = typeof DELIVERY_ZONES[number]["id"];
-
 export default function CheckoutPage() {
   const router = useRouter();
+  const { config } = useSiteData();
+  const deliveryZones = config.deliveryZones;
   const { items, totalAmount, clearCart, removeItem, updateQuantity } = useCartStore();
   const [form, setForm] = useState<CheckoutForm>({ customerName: "", phone: "", address: "", note: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof CheckoutForm, string>>>({});
-  const [deliveryZone, setDeliveryZone] = useState<DeliveryZone | null>(null);
+  const [deliveryZoneIdx, setDeliveryZoneIdx] = useState<number | null>(null);
   const [deliveryError, setDeliveryError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
 
-  const deliveryCharge = DELIVERY_ZONES.find((z) => z.id === deliveryZone)?.charge ?? null;
+  const selectedZone = deliveryZoneIdx !== null ? deliveryZones[deliveryZoneIdx] : null;
+  const deliveryCharge = selectedZone?.charge ?? null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -73,7 +70,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deliveryZone || deliveryCharge === null) {
+    if (deliveryZoneIdx === null || deliveryCharge === null) {
       setDeliveryError(true);
       return;
     }
@@ -159,7 +156,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 line-clamp-1">{item.title}</p>
-                  <p className="text-xs text-gray-500">{item.variant}</p>
+                  {item.variant && item.variant !== "Default" && (
+                    <p className="text-xs text-gray-500">{item.variant}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     <button
                       onClick={() => item.quantity > 1 ? updateQuantity(item.productSlug, item.variant, item.quantity - 1) : removeItem(item.productSlug, item.variant)}
@@ -203,7 +202,7 @@ export default function CheckoutPage() {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={couponCode}
@@ -211,18 +210,56 @@ export default function CheckoutPage() {
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleApplyCoupon())}
                   placeholder="Coupon code"
                   maxLength={50}
-                  className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-2 text-sm font-mono focus:outline-none focus:border-green-500 uppercase"
+                  className="flex-1 min-w-0 border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-green-500 uppercase"
                 />
                 <button
                   type="button"
                   onClick={handleApplyCoupon}
                   disabled={couponLoading || !couponCode.trim()}
-                  className="flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  className="shrink-0 flex items-center justify-center gap-1.5 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50"
                 >
                   {couponLoading ? <Loader2 size={14} className="animate-spin" /> : <Tag size={14} />}
                   Apply
                 </button>
               </div>
+            )}
+          </div>
+
+          {/* Delivery zone */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              Delivery Zone <span className="text-red-500">*</span>
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {deliveryZones.map((zone, idx) => (
+                <label
+                  key={idx}
+                  onClick={() => { setDeliveryZoneIdx(idx); setDeliveryError(false); }}
+                  className={`flex flex-col gap-0.5 border-2 rounded-xl px-4 py-3 cursor-pointer transition-colors ${
+                    deliveryZoneIdx === idx
+                      ? "border-green-500 bg-green-50"
+                      : deliveryError
+                      ? "border-red-300 bg-red-50/40"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="deliveryZone"
+                      value={idx}
+                      checked={deliveryZoneIdx === idx}
+                      onChange={() => { setDeliveryZoneIdx(idx); setDeliveryError(false); }}
+                      className="accent-green-600 w-4 h-4"
+                    />
+                    <span className="text-sm font-bold text-gray-900">{zone.label}</span>
+                  </div>
+                  <span className="text-xs text-green-700 font-semibold pl-6">৳{zone.charge}</span>
+                </label>
+              ))}
+            </div>
+            {deliveryError && (
+              <p className="text-red-500 text-xs mt-1.5 font-medium">Please select a delivery zone</p>
             )}
           </div>
 
@@ -297,44 +334,6 @@ export default function CheckoutPage() {
                 )}
               </div>
             ))}
-          </div>
-
-          {/* Delivery zone */}
-          <div>
-            <p className="text-sm font-semibold text-gray-700 mb-2">
-              Delivery Zone <span className="text-red-500">*</span>
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {DELIVERY_ZONES.map((zone) => (
-                <label
-                  key={zone.id}
-                  onClick={() => { setDeliveryZone(zone.id); setDeliveryError(false); }}
-                  className={`flex flex-col gap-0.5 border-2 rounded-xl px-4 py-3 cursor-pointer transition-colors ${
-                    deliveryZone === zone.id
-                      ? "border-green-500 bg-green-50"
-                      : deliveryError
-                      ? "border-red-300 bg-red-50/40"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="deliveryZone"
-                      value={zone.id}
-                      checked={deliveryZone === zone.id}
-                      onChange={() => { setDeliveryZone(zone.id); setDeliveryError(false); }}
-                      className="accent-green-600 w-4 h-4"
-                    />
-                    <span className="text-sm font-bold text-gray-900">{zone.label}</span>
-                  </div>
-                  <span className="text-xs text-green-700 font-semibold pl-6">৳{zone.charge}</span>
-                </label>
-              ))}
-            </div>
-            {deliveryError && (
-              <p className="text-red-500 text-xs mt-1.5 font-medium">Please select a delivery zone</p>
-            )}
           </div>
 
           {/* Payment method */}

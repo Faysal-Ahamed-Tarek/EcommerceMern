@@ -12,13 +12,21 @@ export const createReview = async (req: Request, res: Response, next: NextFuncti
 
 export const getApprovedReviews = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const reviews = await Review.find({
-      productSlug: req.params.slug,
-      status: 'approved',
-    })
-      .sort({ createdAt: -1 })
-      .lean();
-    res.json({ success: true, data: reviews });
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+
+    const [reviews, total] = await Promise.all([
+      Review.find({ productSlug: req.params.slug, status: 'approved' })
+        .select('customerName rating comment imageUrl createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Review.countDocuments({ productSlug: req.params.slug, status: 'approved' }),
+    ]);
+
+    res.json({ success: true, data: reviews, total, page, limit });
   } catch (err) {
     next(err);
   }
@@ -26,7 +34,7 @@ export const getApprovedReviews = async (req: Request, res: Response, next: Next
 
 export const getPendingReviews = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const reviews = await Review.find({ status: 'pending' }).sort({ createdAt: -1 }).lean();
+    const reviews = await Review.find({ status: 'pending' }).sort({ createdAt: -1 }).limit(200).lean();
     res.json({ success: true, data: reviews });
   } catch (err) {
     next(err);

@@ -3,19 +3,14 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { api } from "@/lib/api";
 import SafeImage from "@/components/ui/SafeImage";
-import type { Category } from "@/types";
+import { useSiteData } from "@/context/SiteDataContext";
 
 export default function CategoryGrid() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories } = useSiteData();
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    api.get("/categories").then((r) => setCategories(r.data.data ?? [])).catch(() => {});
-  }, []);
 
   const syncArrows = useCallback(() => {
     const el = scrollRef.current;

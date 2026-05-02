@@ -1,86 +1,83 @@
 import { Request, Response, NextFunction } from 'express';
 import { Order, Product } from '../models';
 
-const generateOrderId = async (): Promise<string> => {
-  const last = await Order.findOne({}, { orderId: 1 }).sort({ createdAt: -1 }).lean();
-  const lastNum = last?.orderId ? parseInt(last.orderId.replace('ORD-', ''), 10) : 1000;
-  const next = isNaN(lastNum) ? Date.now() : lastNum + 1;
-  return `ORD-${next}`;
+// No DB round-trip: timestamp (ms) + 3-digit random handles any realistic
+// concurrency. The unique index on orderId is the hard safety net.
+const generateOrderId = (): string => {
+  const rand = Math.floor(Math.random() * 900 + 100);
+  return `ORD-${Date.now()}${rand}`;
 };
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { items } = req.body;
+    const { items } = req.body as {
+      items: Array<{ productSlug: string; title: string; variant: string; quantity: number }>;
+    };
 
-    // Stock validation
+    // Single batch fetch — replaces the N×(1-2) query validation loop
+    const slugs = [...new Set(items.map((i) => i.productSlug))];
+    const products = await Product.find(
+      { slug: { $in: slugs } },
+      { slug: 1, totalStock: 1, variants: 1, category: 1, images: 1 }
+    ).lean();
+    const productMap = new Map(products.map((p) => [p.slug, p]));
+
+    // Validate stock from the in-memory map — no extra DB queries
     for (const item of items) {
+      const product = productMap.get(item.productSlug);
+      if (!product) {
+        res.status(400).json({ success: false, message: `Product ${item.productSlug} not found` });
+        return;
+      }
       const isDefaultVariant = !item.variant || item.variant === 'Default';
-
       if (isDefaultVariant) {
-        const product = await Product.findOne(
-          { slug: item.productSlug },
-          { totalStock: 1 }
-        ).lean();
-        if (!product) {
-          res.status(400).json({ success: false, message: `Product ${item.productSlug} not found` });
-          return;
-        }
         if (product.totalStock !== undefined && product.totalStock < item.quantity) {
           res.status(400).json({ success: false, message: `Insufficient stock for ${item.title}` });
           return;
         }
       } else {
-        const product = await Product.findOne(
-          { slug: item.productSlug, 'variants.name': item.variant },
-          { 'variants.$': 1, totalStock: 1 }
-        ).lean();
-        if (!product) {
-          const exists = await Product.findOne({ slug: item.productSlug }, { _id: 1 }).lean();
-          if (!exists) {
-            res.status(400).json({ success: false, message: `Product ${item.productSlug} not found` });
-            return;
-          }
-        } else {
-          const variant = product.variants?.[0];
-          if (variant?.stock !== undefined && variant.stock < item.quantity) {
-            res.status(400).json({
-              success: false,
-              message: `Insufficient stock for ${item.title} (${item.variant})`,
-            });
-            return;
-          }
+        const variant = product.variants?.find((v) => v.name === item.variant);
+        if (variant?.stock !== undefined && variant.stock < item.quantity) {
+          res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${item.title} (${item.variant})`,
+          });
+          return;
         }
       }
     }
 
-    // Stock deduction + enrich items with category and image
-    const enrichedItems = await Promise.all(
-      items.map(async (item: typeof items[number]) => {
-        const isDefaultVariant = !item.variant || item.variant === 'Default';
-        const product = await Product.findOne(
-          { slug: item.productSlug },
-          { category: 1, images: 1 }
-        ).lean();
-        const category = product?.category ?? '';
-        const image = product?.images?.[0]?.cloudinaryUrl ?? '';
+    // Enrich items with category + image from the in-memory map
+    const enrichedItems = items.map((item) => {
+      const product = productMap.get(item.productSlug);
+      return {
+        ...item,
+        category: product?.category ?? '',
+        image: product?.images?.[0]?.cloudinaryUrl ?? '',
+      };
+    });
 
-        if (isDefaultVariant) {
-          await Product.updateOne(
-            { slug: item.productSlug },
-            { $inc: { totalStock: -item.quantity } }
-          );
-        } else {
-          await Product.updateOne(
-            { slug: item.productSlug, 'variants.name': item.variant },
-            { $inc: { 'variants.$.stock': -item.quantity, totalStock: -item.quantity } }
-          );
-        }
+    // Deduct stock in one bulkWrite — replaces N individual updateOne calls
+    const bulkOps = items.map((item) => {
+      const isDefaultVariant = !item.variant || item.variant === 'Default';
+      if (isDefaultVariant) {
+        return {
+          updateOne: {
+            filter: { slug: item.productSlug },
+            update: { $inc: { totalStock: -item.quantity } },
+          },
+        };
+      }
+      return {
+        updateOne: {
+          filter: { slug: item.productSlug, 'variants.name': item.variant },
+          update: { $inc: { 'variants.$.stock': -item.quantity, totalStock: -item.quantity } },
+        },
+      };
+    });
+    await Product.bulkWrite(bulkOps);
 
-        return { ...item, category, image };
-      })
-    );
-
-    const orderId = await generateOrderId();
+    const orderId = generateOrderId();
     const order = await Order.create({ ...req.body, items: enrichedItems, orderId });
     res.status(201).json({ success: true, data: order });
   } catch (err) {
@@ -90,7 +87,8 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 
 export const getOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { page = 1, limit = 200, status, startDate, endDate, category } = req.query;
+    const { page = 1, limit = 50, status, startDate, endDate, category } = req.query;
+    const safeLimit = Math.min(Number(limit), 200);
     const filter: Record<string, unknown> = {};
 
     if (status) filter.status = status as string;
@@ -107,12 +105,12 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
       filter.createdAt = dateFilter;
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (Number(page) - 1) * safeLimit;
     const [orders, total] = await Promise.all([
-      Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+      Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(safeLimit).lean(),
       Order.countDocuments(filter),
     ]);
-    res.json({ success: true, data: orders, total, page: Number(page), limit: Number(limit) });
+    res.json({ success: true, data: orders, total, page: Number(page), limit: safeLimit });
   } catch (err) {
     next(err);
   }

@@ -3,20 +3,131 @@ import jwt from 'jsonwebtoken';
 import { Admin, Order, Product, Review } from '../models';
 import { AuthRequest } from '../middleware/auth';
 
+const LOGIN_MAX_ATTEMPTS = parseInt(process.env.ADMIN_LOGIN_MAX_ATTEMPTS || '5');
+const LOGIN_LOCK_MINUTES = parseInt(process.env.ADMIN_LOGIN_LOCK_MINUTES || '15');
+
+// Minimum password complexity: 8+ chars, at least one digit, one special char
+const PASSWORD_STRONG = /^(?=.*[0-9])(?=.*[!@#$%^&*()\-_=+{};:,<.>/?])(.{8,})$/;
+
+const COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  maxAge: 60 * 60 * 1000, // 1 hour
+  path: '/',
+};
+
+function auditLog(event: string, data: Record<string, unknown>) {
+  console.info(JSON.stringify({ event, timestamp: new Date().toISOString(), ...data }));
+}
+
 export const adminLogin = async (req: Request, res: Response, next: NextFunction) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const ua = req.headers['user-agent'] || 'unknown';
   try {
     const { email, password } = req.body;
-    const admin = await Admin.findOne({ email });
-    if (!admin || !(await admin.comparePassword(password))) {
+    if (!email || !password) {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
       return;
     }
 
+    const admin = await Admin.findOne({ email: String(email).toLowerCase().trim() });
+
+    // Account lockout check
+    if (admin?.isLocked()) {
+      auditLog('login_failed', { email, ip, ua, reason: 'account_locked' });
+      res.status(423).json({ success: false, message: 'Account temporarily locked. Please try again later.' });
+      return;
+    }
+
+    const passwordOk = admin ? await admin.comparePassword(password) : false;
+
+    if (!admin || !passwordOk) {
+      if (admin) {
+        admin.loginAttempts += 1;
+        if (admin.loginAttempts >= LOGIN_MAX_ATTEMPTS) {
+          admin.lockUntil = new Date(Date.now() + LOGIN_LOCK_MINUTES * 60 * 1000);
+        }
+        await admin.save();
+      }
+      auditLog('login_failed', { email, ip, ua });
+      res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return;
+    }
+
+    // Reset lockout on success
+    if (admin.loginAttempts > 0 || admin.lockUntil) {
+      admin.loginAttempts = 0;
+      admin.lockUntil = undefined;
+      await admin.save();
+    }
+
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET as string, {
-      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'],
+      expiresIn: (process.env.JWT_EXPIRES_IN || '1h') as jwt.SignOptions['expiresIn'],
     });
 
-    res.json({ success: true, token });
+    res.cookie('adminToken', token, COOKIE_OPTS);
+    auditLog('login_success', { adminId: admin._id, email: admin.email, ip, ua });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const adminLogout = (req: AuthRequest, res: Response) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  auditLog('logout', { adminId: req.adminId, ip });
+  res.clearCookie('adminToken', { path: '/' });
+  res.json({ success: true });
+};
+
+export const changePassword = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const ua = req.headers['user-agent'] || 'unknown';
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      res.status(400).json({ success: false, message: 'All fields are required' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      res.status(400).json({ success: false, message: 'New passwords do not match' });
+      return;
+    }
+    if (!PASSWORD_STRONG.test(newPassword)) {
+      res.status(400).json({ success: false, message: 'Password must be at least 8 characters and include a number and special character' });
+      return;
+    }
+
+    const admin = await Admin.findById(req.adminId);
+    if (!admin) {
+      res.status(404).json({ success: false, message: 'Admin not found' });
+      return;
+    }
+
+    const currentOk = await admin.comparePassword(currentPassword);
+    if (!currentOk) {
+      auditLog('password_change_failed', { adminId: admin._id, ip, ua, reason: 'wrong_current_password' });
+      res.status(401).json({ success: false, message: 'Current password is incorrect' });
+      return;
+    }
+
+    // Prevent reuse of current password
+    const sameAsOld = await admin.comparePassword(newPassword);
+    if (sameAsOld) {
+      res.status(400).json({ success: false, message: 'New password must be different from the current password' });
+      return;
+    }
+
+    admin.password = newPassword;
+    admin.passwordChangedAt = new Date();
+    await admin.save();
+
+    // Invalidate session by clearing cookie
+    res.clearCookie('adminToken', { path: '/' });
+    auditLog('password_change_success', { adminId: admin._id, email: admin.email, ip, ua });
+    res.json({ success: true, message: 'Password changed. Please log in again.' });
   } catch (err) {
     next(err);
   }
@@ -120,7 +231,7 @@ export const getAllAdminReviews = async (req: Request, res: Response, next: Next
     const { status } = req.query;
     const filter: Record<string, unknown> = {};
     if (status && status !== 'all') filter.status = status;
-    const reviews = await Review.find(filter).sort({ createdAt: -1 }).lean();
+    const reviews = await Review.find(filter).sort({ createdAt: -1 }).limit(500).lean();
     res.json({ success: true, data: reviews });
   } catch (err) {
     next(err);

@@ -66,6 +66,8 @@ const OrderSchema = new Schema<IOrder>(
 );
 
 OrderSchema.index({ createdAt: -1 });
+OrderSchema.index({ status: 1 });
+OrderSchema.index({ 'items.category': 1 });
 
 const Order = mongoose.model<IOrder>('Order', OrderSchema);
 export default Order;

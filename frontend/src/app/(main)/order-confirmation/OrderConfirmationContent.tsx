@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { Loader2, Printer, ShoppingBag, Home } from "lucide-react";
+import { Loader2, Printer, ShoppingBag } from "lucide-react";
+import { useSiteData } from "@/context/SiteDataContext";
 import type { Order } from "@/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -24,6 +25,10 @@ const STATUS_COLORS: Record<string, string> = {
 export default function OrderConfirmationContent() {
   const params = useSearchParams();
   const orderId = params.get("orderId");
+  const { config } = useSiteData();
+  const storeName   = config.storeName   || "ShopBD";
+  const storeTagline = config.storeTagline || "";
+  const headerLogo  = config.headerLogo  || "";
   const autoPrint = params.get("print") === "1";
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -47,7 +52,12 @@ export default function OrderConfirmationContent() {
     }
   }, [autoPrint, order]);
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const prev = document.title;
+    document.title = `Receipt-${order?.orderId ?? ""}`;
+    window.print();
+    setTimeout(() => { document.title = prev; }, 1000);
+  };
 
   if (loading) {
     return (
@@ -71,7 +81,7 @@ export default function OrderConfirmationContent() {
           {orderId && (
             <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
               <p className="text-xs text-green-700 font-semibold uppercase tracking-wider mb-1">Order ID</p>
-              <p className="text-xl font-extrabold text-green-800">{orderId}</p>
+              <p className="text-xl font-extrabold text-green-800">{orderId.replace("ORD-", "").slice(-6)}</p>
             </div>
           )}
           <div className="flex flex-col gap-2.5 pt-2">
@@ -89,7 +99,7 @@ export default function OrderConfirmationContent() {
 
   const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
   const delivery = order.deliveryCharge ?? 0;
-  const serial = order.orderId.replace("ORD-", "");
+  const shortId = order.orderId.replace("ORD-", "").slice(-6);
 
   return (
     <>
@@ -106,30 +116,25 @@ export default function OrderConfirmationContent() {
       {/* ── Screen: success banner ── */}
       <div className="no-print bg-green-50 border-b border-green-100 py-4 px-4 text-center">
         <p className="text-green-800 font-semibold text-sm">
-          ✅ Order placed successfully! Your order ID is <strong>{order.orderId}</strong>
+          ✅ Order placed successfully! Your order ID is <strong>{order.orderId.replace("ORD-", "").slice(-6)}</strong>
         </p>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8 pb-16">
         {/* ── Action buttons (screen only) ── */}
-        <div className="no-print flex items-center justify-between mb-6">
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
-            <Home size={15} /> Home
+        <div className="no-print flex flex-col sm:flex-row gap-2 mb-6">
+          <button
+            onClick={handlePrint}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-900 transition-colors w-full sm:w-auto"
+          >
+            <Printer size={15} /> Download Receipt
+          </button>
+          <Link
+            href="/products"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 transition-colors w-full sm:w-auto"
+          >
+            <ShoppingBag size={15} /> Continue Shopping
           </Link>
-          <div className="flex gap-2">
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-900 transition-colors"
-            >
-              <Printer size={15} /> Download / Print Receipt
-            </button>
-            <Link
-              href="/products"
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 transition-colors"
-            >
-              <ShoppingBag size={15} /> Continue Shopping
-            </Link>
-          </div>
         </div>
 
         {/* ── Receipt card ── */}
@@ -140,12 +145,19 @@ export default function OrderConfirmationContent() {
         >
           {/* Store header */}
           <div className="bg-green-50 border-b border-green-100 px-6 py-5 flex items-start gap-4">
-            <div className="w-14 h-14 bg-white rounded-xl border border-green-200 flex items-center justify-center shrink-0">
-              <span className="text-2xl">🌿</span>
+            <div className="w-14 h-14 bg-white rounded-xl border border-green-200 flex items-center justify-center shrink-0 overflow-hidden">
+              {headerLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={headerLogo} alt={storeName} className="w-full h-full object-contain p-1" />
+              ) : (
+                <span className="text-lg font-extrabold text-green-700">
+                  {storeName.slice(0, 2).toUpperCase()}
+                </span>
+              )}
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-gray-900">Herblife</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Natural Health Products</p>
+              <h1 className="text-xl font-extrabold text-gray-900">{storeName}</h1>
+              {storeTagline && <p className="text-sm text-gray-500 mt-0.5">{storeTagline}</p>}
               <p className="text-xs text-gray-400 mt-1">Cash on Delivery · Bangladesh</p>
             </div>
           </div>
@@ -154,11 +166,11 @@ export default function OrderConfirmationContent() {
           <div className="px-6 py-4 border-b border-gray-100 flex flex-wrap gap-6 text-sm">
             <div>
               <p className="text-xs text-gray-400 mb-0.5">Bill ID</p>
-              <p className="font-bold text-gray-900">#{order.orderId.replace("ORD-", "")}</p>
+              <p className="font-bold text-gray-900">#{shortId}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Serial</p>
-              <p className="font-bold text-gray-900">#{serial}</p>
+              <p className="text-xs text-gray-400 mb-0.5">Order ID</p>
+              <p className="font-bold text-gray-900">#{shortId}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400 mb-0.5">Order Type</p>

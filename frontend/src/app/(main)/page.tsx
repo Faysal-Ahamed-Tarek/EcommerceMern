@@ -9,6 +9,11 @@ import ReviewsSection from "@/components/home/ReviewsSection";
 import CategoryCarousel from "@/components/home/CategoryCarousel";
 import type { Product, HomeReview, HeroSlide, PromoPanel, Category, ApiResponse } from "@/types";
 
+interface CarouselSection {
+  category: Category;
+  products: Product[];
+}
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 async function getSEOData(page: string) {
@@ -86,22 +91,13 @@ async function getHomeCategories(): Promise<string[]> {
   } catch { return []; }
 }
 
-async function getAllCategories(): Promise<Category[]> {
+async function getCarouselSections(slugs: string[]): Promise<CarouselSection[]> {
+  if (!slugs.length) return [];
   try {
-    const res = await fetch(`${API}/categories`, { next: { revalidate: 300 } });
+    const params = new URLSearchParams({ slugs: slugs.join(","), limit: "8" });
+    const res = await fetch(`${API}/products/carousel?${params}`, { next: { revalidate: 60 } });
     if (!res.ok) return [];
-    const json: ApiResponse<Category[]> = await res.json();
-    return json.data ?? [];
-  } catch { return []; }
-}
-
-async function getProductsByCategory(categorySlug: string): Promise<Product[]> {
-  try {
-    const res = await fetch(`${API}/products?category=${encodeURIComponent(categorySlug)}&limit=8`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return [];
-    const json: ApiResponse<Product[]> = await res.json();
+    const json = await res.json();
     return json.data ?? [];
   } catch { return []; }
 }
@@ -114,7 +110,6 @@ export default async function HomePage() {
     slides,
     promoPanel,
     homeCategories,
-    allCategories,
   ] = await Promise.all([
     getFeaturedProducts(),
     getTopSellingProducts(),
@@ -122,22 +117,9 @@ export default async function HomePage() {
     getHeroSlides(),
     getPromoPanel(),
     getHomeCategories(),
-    getAllCategories(),
   ]);
 
-  const selectedSlugs = homeCategories.slice(0, 2);
-  const categoryProductPairs = await Promise.all(
-    selectedSlugs.map(async (slug) => {
-      const cat = allCategories.find((c) => c.slug === slug);
-      if (!cat) return null;
-      const products = await getProductsByCategory(slug);
-      return { category: cat, products };
-    })
-  );
-  const carouselSections = categoryProductPairs.filter(Boolean) as {
-    category: Category;
-    products: Product[];
-  }[];
+  const carouselSections = await getCarouselSections(homeCategories.slice(0, 2));
 
   return (
     <main className="max-w-[1200px] mx-auto px-4 py-5">
