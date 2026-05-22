@@ -33,6 +33,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       <img
         src={src}
         alt="Review image"
+        decoding="async"
         className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
@@ -113,6 +114,8 @@ export default function ReviewsSection({ reviews }: { reviews: HomeReview[] }) {
                   <img
                     src={review.imageUrl}
                     alt="Review"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                   />
                 </button>
@@ -125,6 +128,8 @@ export default function ReviewsSection({ reviews }: { reviews: HomeReview[] }) {
                   <img
                     src={review.reviewerPhoto}
                     alt={review.customerName}
+                    loading="lazy"
+                    decoding="async"
                     className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-green-200"
                   />
                 ) : (

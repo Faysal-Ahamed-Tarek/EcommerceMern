@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
-import { Loader2, Palette, RotateCcw, Building2 } from "lucide-react";
+import { Loader2, Palette, RotateCcw, Building2, ImagePlus } from "lucide-react";
+import { CldUploadWidget } from "next-cloudinary";
 
 // Same shade generation as ThemeProvider (kept in sync)
 function hexToHsl(hex: string): [number, number, number] {
@@ -70,6 +71,9 @@ export default function AdminThemePage() {
   const [adminPanelName, setAdminPanelName] = useState("");
   const [adminPanelLogo, setAdminPanelLogo] = useState("");
   const [brandingSaving, setBrandingSaving] = useState(false);
+  const [favicon, setFavicon] = useState("");
+  const [faviconSaving, setFaviconSaving] = useState(false);
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   useEffect(() => {
     api.get("/config")
@@ -79,6 +83,7 @@ export default function AdminThemePage() {
         setSaved(c);
         setAdminPanelName(r.data.data?.adminPanelName ?? "");
         setAdminPanelLogo(r.data.data?.adminPanelLogo ?? "");
+        setFavicon(r.data.data?.favicon ?? "");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -120,6 +125,18 @@ export default function AdminThemePage() {
       toast.error("Failed to save branding");
     } finally {
       setBrandingSaving(false);
+    }
+  };
+
+  const handleSaveFavicon = async () => {
+    setFaviconSaving(true);
+    try {
+      await api.put("/admin/config", { favicon });
+      toast.success("Favicon saved — visible after next page load");
+    } catch {
+      toast.error("Failed to save favicon");
+    } finally {
+      setFaviconSaving(false);
     }
   };
 
@@ -275,6 +292,82 @@ export default function AdminThemePage() {
           >
             {brandingSaving && <Loader2 size={14} className="animate-spin" />}
             Save Branding
+          </button>
+        </div>
+      </div>
+
+      {/* Favicon */}
+      <div className="flex items-center gap-3 mt-8 mb-4">
+        <ImagePlus size={22} className="text-indigo-600" />
+        <h2 className="text-xl font-bold text-gray-900">Site Favicon</h2>
+      </div>
+      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+        <p className="text-xs text-gray-500">
+          Shown in the browser tab for all pages on your store. Use a square image (PNG or ICO, 32×32 or 64×64 px recommended).
+        </p>
+
+        {favicon && (
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={favicon}
+              alt="Favicon preview"
+              className="w-10 h-10 object-contain rounded border border-gray-200 p-1"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            />
+            <span className="text-xs text-gray-500">Current favicon</span>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {uploadPreset ? (
+            <CldUploadWidget
+              uploadPreset={uploadPreset}
+              onSuccess={(r: unknown) => {
+                const info = (r as { info?: { secure_url?: string } })?.info;
+                if (info?.secure_url) setFavicon(info.secure_url);
+              }}
+              options={{ resourceType: "image" }}
+            >
+              {({ open }) => (
+                <button
+                  type="button"
+                  onClick={() => open()}
+                  className="flex items-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors w-fit"
+                >
+                  <ImagePlus size={16} />
+                  {favicon ? "Change Favicon" : "Upload Favicon"}
+                </button>
+              )}
+            </CldUploadWidget>
+          ) : (
+            <input
+              type="url"
+              placeholder="https://example.com/favicon.png"
+              value={favicon}
+              onChange={(e) => setFavicon(e.target.value)}
+              className="border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:border-indigo-400"
+            />
+          )}
+          {favicon && (
+            <button
+              type="button"
+              onClick={() => setFavicon("")}
+              className="text-xs text-red-500 hover:underline w-fit"
+            >
+              Remove favicon
+            </button>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-gray-100">
+          <button
+            onClick={handleSaveFavicon}
+            disabled={faviconSaving}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60"
+          >
+            {faviconSaving && <Loader2 size={14} className="animate-spin" />}
+            Save Favicon
           </button>
         </div>
       </div>

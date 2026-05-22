@@ -30,7 +30,10 @@ interface NavLink {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isLoginPage = pathname === "/admin/login";
+  const isLoginPage =
+    pathname === "/admin/login" ||
+    pathname === "/admin/forgot-password" ||
+    pathname === "/admin/reset-password";
   const [checking, setChecking] = useState(true);
   const [authed, setAuthed] = useState(false);
   const isPagesActive = pathname.startsWith("/admin/pages");

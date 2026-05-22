@@ -75,6 +75,15 @@ export default function AdminLoginPage() {
         >
           {loading ? "Logging in…" : "Login"}
         </button>
+
+        <div className="text-center">
+          <a
+            href="/admin/forgot-password"
+            className="text-sm text-indigo-500 hover:text-indigo-700 hover:underline transition-colors"
+          >
+            Forgot password?
+          </a>
+        </div>
       </form>
     </div>
   );

@@ -40,7 +40,7 @@ export default function AdminProductsPage() {
   const getProductPrice = (p: Product) => {
     if (p.variants && p.variants.length > 0) {
       const minPrice = Math.min(
-        ...p.variants.map((v) => (v.discountPrice > 0 ? v.discountPrice : v.price))
+        ...p.variants.map((v) => (v.discount_price && v.discount_price > 0 ? v.discount_price : v.base_price))
       );
       return `From ৳${minPrice.toLocaleString()}`;
     }
@@ -73,7 +73,7 @@ export default function AdminProductsPage() {
                 <th className="px-4 py-3">Price</th>
                 <th className="px-4 py-3">Variants</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Featured</th>
+                <th className="px-4 py-3">For you</th>
                 <th className="px-4 py-3">Top Selling</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
@@ -89,7 +89,10 @@ export default function AdminProductsPage() {
               {products.map((p) => (
                 <tr key={p._id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-gray-900 max-w-[220px] truncate">
-                    {p.title}
+                    {p.title_en}
+                    {p.title_bn && (
+                      <span className="block text-xs text-gray-400 font-normal truncate">{p.title_bn}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{p.category}</td>
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap">

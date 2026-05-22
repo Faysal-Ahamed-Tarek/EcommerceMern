@@ -42,12 +42,14 @@ function PanelImage({
     <img
       src={imageUrl}
       alt={altText || "Promo banner"}
+      loading="lazy"
+      decoding="async"
       className="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.02]"
     />
   );
 
   const wrapper = (
-    <div className="relative overflow-hidden rounded-2xl aspect-[16/7] bg-gray-100 group cursor-pointer shadow-sm hover:shadow-md transition-shadow duration-300">
+    <div className="relative overflow-hidden rounded-2xl aspect-[16/9] bg-gray-100 group cursor-pointer shadow-sm hover:shadow-md transition-shadow duration-300">
       {img}
     </div>
   );

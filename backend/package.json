@@ -9,7 +9,10 @@
     "typecheck": "tsc --noEmit",
     "seed:admin": "ts-node --transpile-only src/scripts/seedAdmin.ts",
     "seed:products": "ts-node --transpile-only src/scripts/seedProducts.ts",
-    "seed:home-reviews": "ts-node --transpile-only src/scripts/seedHomeReviews.ts"
+    "seed:home-reviews": "ts-node --transpile-only src/scripts/seedHomeReviews.ts",
+    "reset:admin": "ts-node --transpile-only src/scripts/resetAdmin.ts",
+    "cleanse:demo": "ts-node --transpile-only src/scripts/cleanseDemo.ts",
+    "migrate:products": "ts-node --transpile-only src/scripts/migrateProducts.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +21,7 @@
   "dependencies": {
     "@types/compression": "^1.8.1",
     "@types/express-rate-limit": "^5.1.3",
+    "@types/nodemailer": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
@@ -28,6 +32,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
     "morgan": "^1.10.1",
+    "nodemailer": "^8.0.7",
     "zod": "^4.3.6"
   },
   "devDependencies": {

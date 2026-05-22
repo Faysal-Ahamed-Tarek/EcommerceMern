@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { memo, useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "@/components/product/ProductCard";
@@ -10,7 +10,7 @@ interface Props {
   products: Product[];
 }
 
-export default function TopSellingSection({ products }: Props) {
+const TopSellingSection = memo(function TopSellingSection({ products }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -89,4 +89,6 @@ export default function TopSellingSection({ products }: Props) {
       </div>
     </section>
   );
-}
+});
+
+export default TopSellingSection;

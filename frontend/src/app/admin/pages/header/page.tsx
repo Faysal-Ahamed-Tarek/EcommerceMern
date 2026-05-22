@@ -12,6 +12,8 @@ export default function AdminHeaderPage() {
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   const [headerLogo, setHeaderLogo] = useState("");
+  const [headerPhone, setHeaderPhone] = useState("");
+  const [marqueeEnabled, setMarqueeEnabled] = useState(true);
   const [marqueeTexts, setMarqueeTexts] = useState<string[]>([
     "🚚 Free delivery on orders above ৳999",
     "Cash on Delivery available across Bangladesh",
@@ -25,6 +27,8 @@ export default function AdminHeaderPage() {
       .then((r) => {
         const d = r.data?.data;
         if (d?.headerLogo) setHeaderLogo(d.headerLogo);
+        if (d?.headerPhone) setHeaderPhone(d.headerPhone);
+        setMarqueeEnabled(d?.marqueeEnabled !== false);
         if (d?.marqueeTexts?.length > 0) setMarqueeTexts(d.marqueeTexts);
       })
       .catch(() => {})
@@ -34,7 +38,7 @@ export default function AdminHeaderPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put("/admin/config", { headerLogo, marqueeTexts });
+      await api.put("/admin/config", { headerLogo, headerPhone, marqueeEnabled, marqueeTexts });
       toast.success("Header settings saved");
     } catch {
       toast.error("Failed to save header settings");
@@ -116,11 +120,43 @@ export default function AdminHeaderPage() {
         </div>
       </div>
 
-      {/* Marquee Texts */}
+      {/* Phone Number */}
       <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
         <div>
-          <h2 className="font-semibold text-gray-800">Marquee Announcement Texts</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Texts that scroll in the top announcement bar</p>
+          <h2 className="font-semibold text-gray-800">Phone Number</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Shown in the header on desktop. Leave blank to hide.</p>
+        </div>
+        <input
+          type="tel"
+          placeholder="+880 1XXX-XXXXXX"
+          value={headerPhone}
+          onChange={(e) => setHeaderPhone(e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* Marquee Texts */}
+      <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-gray-800">Marquee Announcement Texts</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Texts that scroll in the top announcement bar</p>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <span className="text-sm text-gray-600">{marqueeEnabled ? "On" : "Off"}</span>
+            <div
+              onClick={() => setMarqueeEnabled((v) => !v)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
+                marqueeEnabled ? "bg-indigo-600" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                  marqueeEnabled ? "translate-x-[18px]" : "translate-x-[2px]"
+                }`}
+              />
+            </div>
+          </label>
         </div>
 
         {marqueeTexts.map((text, i) => (

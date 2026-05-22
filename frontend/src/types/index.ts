@@ -4,21 +4,19 @@ export interface ProductImage {
 }
 
 export interface ProductVariant {
-  type: string;
-  name: string;
-  price: number;
-  discountPrice: number;
-  stock?: number;
+  weight_label: string;
+  base_price: number;
+  discount_price?: number;
+  stock: number;
 }
 
 export interface Product {
   _id: string;
-  title: string;
+  title_en: string;
+  title_bn?: string;
   slug: string;
   description: string;
   shortDescription?: string;
-  howToUse?: string;
-  ingredients?: string;
   sku?: string;
   category: string;
   images: ProductImage[];

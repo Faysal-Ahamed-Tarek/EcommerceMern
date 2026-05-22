@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ShoppingCart, Menu, X, Search, Store,
+  ShoppingCart, Menu, X, Search, Store, Phone,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useSiteData } from "@/context/SiteDataContext";
@@ -12,14 +12,18 @@ import { useSiteData } from "@/context/SiteDataContext";
 export default function Header() {
   const router = useRouter();
   const { categories, config } = useSiteData();
+  const marqueeEnabled = config.marqueeEnabled;
   const marqueeTexts = config.marqueeTexts;
   const headerLogo = config.headerLogo ?? "";
+  const headerPhone = config.headerPhone;
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const totalItems = useCartStore((s) => s.totalItems());
 
   useEffect(() => {
+    setMounted(true);
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -36,13 +40,15 @@ export default function Header() {
   return (
     <>
       {/* ── Top bar ── */}
-      <div className="bg-green-700 text-white text-xs py-2">
-        <div className="max-w-[1200px] mx-auto px-2 flex items-center justify-center gap-0 md:gap-6 flex-wrap">
-          {marqueeTexts.map((text, i) => (
-            <span key={i} className=" font-medium tracking-wide">{text}</span>
-          ))}
+      {marqueeEnabled && (
+        <div className="bg-green-700 text-white text-xs py-2">
+          <div className="max-w-[1200px] mx-auto px-2 flex items-center justify-center gap-0 md:gap-6 flex-wrap">
+            {marqueeTexts.map((text, i) => (
+              <span key={i} className=" font-medium tracking-wide">{text}</span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Main header ── */}
       <header
@@ -87,6 +93,16 @@ export default function Header() {
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-1 ml-auto sm:ml-0 shrink-0">
+            {/* Phone */}
+            {headerPhone && (
+              <a
+                href={`tel:${headerPhone.replace(/\s/g, "")}`}
+                className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
+              >
+                <Phone size={14} /> {headerPhone}
+              </a>
+            )}
+
             {/* Shop */}
             <Link
               href="/products"
@@ -101,7 +117,7 @@ export default function Header() {
               className="relative flex items-center gap-2 transition-colors px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50"
             >
               <ShoppingCart size={18} />
-              {totalItems >= 0 && (
+              {mounted && totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 text-white">
                   {totalItems}
                 </span>
@@ -189,6 +205,16 @@ export default function Header() {
                 ))}
               </div>
             </div>
+
+            {/* Mobile phone */}
+            {headerPhone && (
+              <a
+                href={`tel:${headerPhone.replace(/\s/g, "")}`}
+                className="flex items-center gap-2 px-3 py-2.5 bg-green-50 text-green-700 rounded-lg text-sm font-semibold"
+              >
+                <Phone size={15} /> {headerPhone}
+              </a>
+            )}
 
           </div>
         )}

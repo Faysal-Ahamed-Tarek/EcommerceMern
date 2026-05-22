@@ -1,11 +1,10 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IProductVariant {
-  type: string;
-  name: string;
-  price: number;
-  discountPrice: number;
-  stock?: number;
+  weight_label: string;
+  base_price: number;
+  discount_price?: number;
+  stock: number;
 }
 
 export interface IProductImage {
@@ -14,12 +13,11 @@ export interface IProductImage {
 }
 
 export interface IProduct extends Document {
-  title: string;
+  title_en: string;
+  title_bn?: string;
   slug: string;
   description: string;
   shortDescription?: string;
-  howToUse?: string;
-  ingredients?: string;
   sku?: string;
   category: string;
   images: IProductImage[];
@@ -42,7 +40,8 @@ export interface IProduct extends Document {
 
 const ProductSchema = new Schema<IProduct>(
   {
-    title: { type: String, required: true, trim: true },
+    title_en: { type: String, required: true, trim: true },
+    title_bn: { type: String, trim: true },
     slug: { type: String, unique: true, trim: true },
     description: { type: String, required: true },
     category: { type: String, required: true },
@@ -54,11 +53,10 @@ const ProductSchema = new Schema<IProduct>(
     ],
     variants: [
       {
-        type: { type: String, required: true, default: 'weight' },
-        name: { type: String, required: true },
-        price: { type: Number, required: true },
-        discountPrice: { type: Number, required: true, default: 0 },
-        stock: { type: Number },
+        weight_label: { type: String, required: true },
+        base_price: { type: Number, required: true },
+        discount_price: { type: Number },
+        stock: { type: Number, required: true, default: 0 },
       },
     ],
     basePrice: { type: Number, default: 0 },
@@ -71,8 +69,6 @@ const ProductSchema = new Schema<IProduct>(
     status: { type: String, enum: ['draft', 'published'], default: 'draft' },
     order: { type: Number },
     shortDescription: { type: String },
-    howToUse: { type: String },
-    ingredients: { type: String },
     sku: { type: String },
     metaTitle: { type: String },
     metaDescription: { type: String },
@@ -88,14 +84,14 @@ ProductSchema.index({ status: 1, isFeatured: 1 });
 ProductSchema.index({ status: 1, isTopSelling: 1 });
 ProductSchema.index({ status: 1, basePrice: 1 });
 ProductSchema.index({ status: 1, order: 1 });
-// Covers queries that filter by both category and price range simultaneously
 ProductSchema.index({ status: 1, category: 1, basePrice: 1 });
-ProductSchema.index({ title: 'text', description: 'text' });
+ProductSchema.index({ title_en: 'text', title_bn: 'text', description: 'text' });
+ProductSchema.index({ title_bn: 1 });
 
 ProductSchema.pre('save', async function () {
-  if (!this.isModified('title') && this.slug) return;
+  if (!this.isModified('title_en') && this.slug) return;
 
-  const base = this.title
+  const base = this.title_en
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9\s-]/g, '')

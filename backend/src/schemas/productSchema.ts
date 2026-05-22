@@ -2,24 +2,25 @@ import { z } from 'zod';
 
 const variantSchema = z
   .object({
-    type: z.string().min(1),
-    name: z.string().min(1),
-    price: z.number().positive(),
-    discountPrice: z.number().min(0),
-    stock: z.number().int().min(0).optional(),
+    weight_label: z.string().min(1),
+    base_price: z.number().min(0),
+    discount_price: z.number().min(0).optional(),
+    stock: z.number().int().min(0),
   })
-  .refine((v) => v.discountPrice <= v.price, {
-    message: 'discountPrice must be <= price',
-    path: ['discountPrice'],
-  });
+  .refine(
+    (v) => v.discount_price === undefined || v.discount_price <= v.base_price,
+    {
+      message: 'discount_price must be <= base_price',
+      path: ['discount_price'],
+    }
+  );
 
 export const createProductSchema = z
   .object({
-    title: z.string().min(2).max(200),
+    title_en: z.string().min(2).max(200),
+    title_bn: z.string().optional(),
     description: z.string().min(1),
     shortDescription: z.string().optional(),
-    howToUse: z.string().optional(),
-    ingredients: z.string().optional(),
     sku: z.string().optional(),
     category: z.string().min(1),
     images: z
@@ -55,11 +56,10 @@ export const createProductSchema = z
   );
 
 export const updateProductSchema = z.object({
-  title: z.string().min(2).max(200).optional(),
+  title_en: z.string().min(2).max(200).optional(),
+  title_bn: z.string().optional(),
   description: z.string().min(1).optional(),
   shortDescription: z.string().optional(),
-  howToUse: z.string().optional(),
-  ingredients: z.string().optional(),
   sku: z.string().optional(),
   category: z.string().min(1).optional(),
   images: z

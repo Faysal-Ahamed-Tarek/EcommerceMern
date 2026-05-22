@@ -6,22 +6,20 @@ import { api } from "@/lib/api";
 import toast from "react-hot-toast";
 import {
   ShoppingBag, Package, AlertTriangle, TrendingUp,
-  CalendarCheck, Loader2,
+  CalendarCheck, Loader2, Banknote,
 } from "lucide-react";
-import type { Order } from "@/types";
 
 interface Stats {
   totalOrders: number;
-  pendingOrders: number;
   ordersToday: number;
   totalProducts: number;
-  pendingReviews: number;
-  activeProducts: number;
+  totalRevenue: number;
 }
 
 interface LowStockProduct {
   _id: string;
-  title: string;
+  title_en: string;
+  title_bn?: string;
   totalStock: number;
   slug: string;
   images: { cloudinaryUrl: string }[];
@@ -34,36 +32,22 @@ interface TopSellingItem {
   totalQty: number;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  pending:   "bg-yellow-100 text-yellow-700",
-  confirmed: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-
 const RANK_STYLES = [
   { bar: "bg-yellow-400", text: "text-yellow-600" },
   { bar: "bg-gray-400",   text: "text-gray-500"  },
-  { bar: "bg-orange-400", text: "text-orange-500"},
+  { bar: "bg-orange-400", text: "text-orange-500" },
 ];
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<LowStockProduct[]>([]);
   const [topSelling, setTopSelling] = useState<TopSellingItem[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingWidgets, setLoadingWidgets] = useState(true);
 
   useEffect(() => {
     api.get("/admin/stats")
       .then((res) => setStats(res.data.data))
       .catch(() => toast.error("Failed to load stats"));
-
-    api.get("/orders?limit=10")
-      .then((res) => setRecentOrders(res.data.data))
-      .catch(() => toast.error("Failed to load orders"))
-      .finally(() => setLoadingOrders(false));
 
     Promise.all([
       api.get("/admin/low-inventory"),
@@ -79,28 +63,28 @@ export default function AdminDashboardPage() {
 
   const METRIC_CARDS = [
     {
+      label: "Total Revenue",
+      value: stats ? `৳${stats.totalRevenue.toLocaleString()}` : null,
+      icon: Banknote,
+      bg: "bg-emerald-500",
+    },
+    {
+      label: "Total Products",
+      value: stats?.totalProducts ?? null,
+      icon: Package,
+      bg: "bg-violet-500",
+    },
+    {
       label: "Total Orders",
-      value: stats?.totalOrders ?? "—",
+      value: stats?.totalOrders ?? null,
       icon: ShoppingBag,
       bg: "bg-blue-500",
     },
     {
       label: "Orders Today",
-      value: stats?.ordersToday ?? "—",
+      value: stats?.ordersToday ?? null,
       icon: CalendarCheck,
-      bg: "bg-emerald-500",
-    },
-    {
-      label: "Pending Orders",
-      value: stats?.pendingOrders ?? "—",
-      icon: TrendingUp,
       bg: "bg-orange-500",
-    },
-    {
-      label: "Total Products",
-      value: stats?.totalProducts ?? "—",
-      icon: Package,
-      bg: "bg-violet-500",
     },
   ];
 
@@ -119,7 +103,11 @@ export default function AdminDashboardPage() {
             </div>
             <div className="min-w-0">
               <p className="text-xs text-gray-500 truncate">{label}</p>
-              <p className="text-xl font-bold text-gray-900 truncate">{value}</p>
+              {value === null ? (
+                <Loader2 size={16} className="animate-spin text-gray-300 mt-1" />
+              ) : (
+                <p className="text-xl font-bold text-gray-900 truncate">{value}</p>
+              )}
             </div>
           </div>
         ))}
@@ -145,7 +133,7 @@ export default function AdminDashboardPage() {
               <Loader2 className="animate-spin text-gray-300" size={22} />
             </div>
           ) : lowStock.length === 0 ? (
-            <p className="text-center py-10 text-gray-400 text-sm">All products well-stocked</p>
+            <p className="text-center py-10 text-gray-400 text-sm">No low-stock products</p>
           ) : (
             <div className="divide-y divide-gray-50">
               {lowStock.map((p) => (
@@ -154,13 +142,13 @@ export default function AdminDashboardPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={p.images[0].cloudinaryUrl}
-                      alt={p.title}
+                      alt={p.title_en}
                       className="w-9 h-9 rounded-lg object-cover shrink-0 border border-gray-100"
                     />
                   ) : (
                     <div className="w-9 h-9 bg-gray-100 rounded-lg shrink-0" />
                   )}
-                  <p className="flex-1 text-sm font-medium text-gray-800 truncate">{p.title}</p>
+                  <p className="flex-1 text-sm font-medium text-gray-800 truncate">{p.title_en}</p>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                     p.totalStock <= 3 ? "bg-red-100 text-red-600" : "bg-orange-100 text-orange-600"
                   }`}>
@@ -196,12 +184,9 @@ export default function AdminDashboardPage() {
                 const pct = Math.round((item.totalQty / maxQty) * 100);
                 return (
                   <div key={item._id} className="flex items-center gap-3 px-5 py-3.5">
-                    {/* Rank */}
                     <span className="text-sm font-bold text-gray-400 w-7 shrink-0 text-center">
                       #{idx + 1}
                     </span>
-
-                    {/* Thumbnail */}
                     {item.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -214,8 +199,6 @@ export default function AdminDashboardPage() {
                         <Package size={16} className="text-gray-300" />
                       </div>
                     )}
-
-                    {/* Name + progress bar */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800 truncate">{item.title}</p>
                       <div className="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -225,8 +208,6 @@ export default function AdminDashboardPage() {
                         />
                       </div>
                     </div>
-
-                    {/* Units sold */}
                     <div className="shrink-0 text-right">
                       <span className={`text-sm font-bold ${rank ? rank.text : "text-indigo-500"}`}>
                         {item.totalQty}
@@ -239,64 +220,6 @@ export default function AdminDashboardPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* ── Recent Orders ── */}
-      <div className="bg-white rounded-xl shadow-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <Package size={16} className="text-gray-500" />
-            <h2 className="font-semibold text-gray-800">Recent Orders</h2>
-          </div>
-          <Link href="/admin/orders" className="text-sm text-indigo-600 hover:text-indigo-800">
-            View all →
-          </Link>
-        </div>
-        {loadingOrders ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-gray-300" size={24} />
-          </div>
-        ) : recentOrders.length === 0 ? (
-          <p className="text-center py-10 text-gray-400 text-sm">No orders yet</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-gray-500 uppercase tracking-wide border-b border-gray-50">
-                  <th className="px-5 py-3">Order ID</th>
-                  <th className="px-5 py-3">Customer</th>
-                  <th className="px-5 py-3">Amount</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {recentOrders.map((o) => (
-                  <tr key={o._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/admin/orders/${o._id}`}
-                        className="font-mono text-xs font-bold text-indigo-600 hover:text-indigo-800"
-                      >
-                        {o.orderId}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 font-medium text-gray-900">{o.customerName}</td>
-                    <td className="px-5 py-3 text-gray-700">৳{o.totalAmount.toLocaleString()}</td>
-                    <td className="px-5 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[o.status] ?? "bg-gray-100 text-gray-600"}`}>
-                        {o.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-gray-400 text-xs">
-                      {new Date(o.createdAt).toLocaleDateString("en-GB")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );

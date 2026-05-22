@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import mongoose from 'mongoose';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -26,13 +27,16 @@ import { getStaticPage } from './controllers/staticPageController';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust Nginx as the first proxy so rate-limiting sees real client IPs
+app.set('trust proxy', 1);
+
 app.use(compression());
 app.use(helmet());
 app.use(cors({
   origin: (process.env.ADMIN_ALLOWED_ORIGINS || 'http://localhost:3000').split(',').map(s => s.trim()),
   credentials: true,
 }));
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 
 const apiLimiter = rateLimit({
@@ -58,7 +62,15 @@ app.use('/api/seo', seoRoutes);
 app.use('/api/coupons', couponRoutes);
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  const dbState = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const db = mongoose.connection.readyState;
+  const status = db === 1 ? 'ok' : 'degraded';
+  res.status(db === 1 ? 200 : 503).json({
+    status,
+    db: dbState[db] ?? 'unknown',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use(errorHandler);

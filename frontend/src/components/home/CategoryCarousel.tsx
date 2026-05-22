@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { memo, useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "@/components/product/ProductCard";
@@ -12,7 +12,7 @@ interface Props {
   products: Product[];
 }
 
-export default function CategoryCarousel({ categoryName, categorySlug, products }: Props) {
+const CategoryCarousel = memo(function CategoryCarousel({ categoryName, categorySlug, products }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -91,4 +91,6 @@ export default function CategoryCarousel({ categoryName, categorySlug, products 
       </div>
     </section>
   );
-}
+});
+
+export default CategoryCarousel;

@@ -13,19 +13,17 @@ import DOMPurify from "dompurify";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface VariantRow {
-  type: string;
-  name: string;
-  price: string;
-  discountPrice: string;
+  weight_label: string;
+  base_price: string;
+  discount_price: string;
   stock: string;
 }
 
 interface FormData {
-  title: string;
+  title_en: string;
+  title_bn: string;
   description: string;
   shortDescription: string;
-  howToUse: string;
-  ingredients: string;
   sku: string;
   category: string;
   hasVariants: boolean;
@@ -46,19 +44,17 @@ interface FormData {
 }
 
 const emptyVariantRow = (): VariantRow => ({
-  type: "weight",
-  name: "",
-  price: "",
-  discountPrice: "0",
+  weight_label: "",
+  base_price: "",
+  discount_price: "0",
   stock: "",
 });
 
 const empty = (): FormData => ({
-  title: "",
+  title_en: "",
+  title_bn: "",
   description: "",
   shortDescription: "",
-  howToUse: "",
-  ingredients: "",
   sku: "",
   category: "",
   hasVariants: false,
@@ -83,22 +79,20 @@ function generateSku() {
 }
 
 const fromProduct = (p: Product): FormData => ({
-  title: p.title,
+  title_en: p.title_en,
+  title_bn: p.title_bn ?? "",
   description: p.description,
   shortDescription: p.shortDescription ?? "",
-  howToUse: p.howToUse ?? "",
-  ingredients: p.ingredients ?? "",
   sku: p.sku ?? "",
   category: p.category,
   hasVariants: (p.variants ?? []).length > 0,
   basePrice: String(p.basePrice),
   DiscountPrice: String(p.DiscountPrice),
   variants: (p.variants ?? []).map((v: ProductVariant) => ({
-    type: v.type,
-    name: v.name,
-    price: String(v.price),
-    discountPrice: String(v.discountPrice),
-    stock: v.stock !== undefined ? String(v.stock) : "",
+    weight_label: v.weight_label,
+    base_price: String(v.base_price),
+    discount_price: v.discount_price !== undefined ? String(v.discount_price) : "0",
+    stock: String(v.stock),
   })),
   totalStock: p.totalStock !== undefined ? String(p.totalStock) : "",
   isFeatured: p.isFeatured,
@@ -178,23 +172,22 @@ export default function ProductForm({ initialProduct }: Props) {
       return;
     }
     if (form.hasVariants && form.variants.length === 0) {
-      toast.error("Add at least one variant or disable the variants toggle");
+      toast.error("Add at least one weight variant or disable the variants toggle");
       return;
     }
     if (form.hasVariants) {
       for (const v of form.variants) {
-        if (!v.type.trim() || !v.name.trim() || !v.price) {
-          toast.error("Fill in all required variant fields (type, name, price)");
+        if (!v.weight_label.trim() || !v.base_price) {
+          toast.error("Fill in weight label and base price for all variants");
           return;
         }
-        if (Number(v.discountPrice) > Number(v.price)) {
-          toast.error("Discount price cannot exceed price for a variant");
+        if (Number(v.discount_price) > Number(v.base_price)) {
+          toast.error("Discount price cannot exceed base price");
           return;
         }
       }
     }
 
-    // Sanitize HTML description
     const safeDescription =
       typeof window !== "undefined"
         ? DOMPurify.sanitize(form.description)
@@ -203,11 +196,10 @@ export default function ProductForm({ initialProduct }: Props) {
     setSaving(true);
     try {
       const payload = {
-        title: form.title,
+        title_en: form.title_en,
+        title_bn: form.title_bn || undefined,
         description: safeDescription,
         shortDescription: form.shortDescription || undefined,
-        howToUse: form.howToUse || undefined,
-        ingredients: form.ingredients || undefined,
         sku: form.sku || undefined,
         category: form.category,
         basePrice: form.hasVariants ? 0 : Number(form.basePrice),
@@ -220,11 +212,10 @@ export default function ProductForm({ initialProduct }: Props) {
         images: form.images,
         variants: form.hasVariants
           ? form.variants.map((v) => ({
-              type: v.type.trim(),
-              name: v.name.trim(),
-              price: Number(v.price),
-              discountPrice: Number(v.discountPrice) || 0,
-              stock: v.stock ? Number(v.stock) : undefined,
+              weight_label: v.weight_label.trim(),
+              base_price: Number(v.base_price),
+              discount_price: Number(v.discount_price) || undefined,
+              stock: v.stock ? Number(v.stock) : 0,
             }))
           : [],
         metaTitle: form.metaTitle || undefined,
@@ -258,11 +249,20 @@ export default function ProductForm({ initialProduct }: Props) {
       {/* ── Basic info ── */}
       <Section title="Basic Information">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Title" required>
+          <Field label="English Title" required>
             <input
               required
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              value={form.title_en}
+              onChange={(e) => setForm((f) => ({ ...f, title_en: e.target.value }))}
+              placeholder="Product name in English"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Bangla Title (optional)">
+            <input
+              value={form.title_bn}
+              onChange={(e) => setForm((f) => ({ ...f, title_bn: e.target.value }))}
+              placeholder="পণ্যের নাম বাংলায়"
               className={inputCls}
             />
           </Field>
@@ -319,7 +319,7 @@ export default function ProductForm({ initialProduct }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))}
               className="w-4 h-4 accent-indigo-600"
             />
-            <span className="text-sm text-gray-700">Featured product</span>
+            <span className="text-sm text-gray-700">For you</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -335,9 +335,8 @@ export default function ProductForm({ initialProduct }: Props) {
 
       {/* ── Short Description ── */}
       <Section title="Short Description">
-        <Field label="Short Description" required>
+        <Field label="Short Description">
           <textarea
-            required
             rows={2}
             maxLength={300}
             value={form.shortDescription}
@@ -356,27 +355,8 @@ export default function ProductForm({ initialProduct }: Props) {
           onChange={(html) => setForm((f) => ({ ...f, description: html }))}
           placeholder="Enter product description. You can paste formatted text directly."
           minHeight="200px"
+          uploadPreset={uploadPreset}
         />
-      </Section>
-
-      {/* ── How to Use & Ingredients ── */}
-      <Section title="How to Use & Ingredients (optional)">
-        <Field label="How to Use">
-          <RichTextEditor
-            value={form.howToUse}
-            onChange={(html) => setForm((f) => ({ ...f, howToUse: html }))}
-            placeholder="Usage instructions — supports rich text"
-            minHeight="120px"
-          />
-        </Field>
-        <Field label="Ingredients">
-          <RichTextEditor
-            value={form.ingredients}
-            onChange={(html) => setForm((f) => ({ ...f, ingredients: html }))}
-            placeholder="Ingredient list — supports rich text"
-            minHeight="120px"
-          />
-        </Field>
       </Section>
 
       {/* ── SKU ── */}
@@ -401,9 +381,9 @@ export default function ProductForm({ initialProduct }: Props) {
       </Section>
 
       {/* ── Pricing & Variants ── */}
-      <Section title="Pricing & Variants">
+      <Section title="Pricing & Weight Variants">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-gray-600">Toggle on to add weight / size / color variants with individual prices.</p>
+          <p className="text-sm text-gray-600">Toggle on to add weight variants with individual prices.</p>
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <div
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
@@ -458,34 +438,19 @@ export default function ProductForm({ initialProduct }: Props) {
           <div>
             <div className="space-y-2">
               {form.variants.length === 0 && (
-                <p className="text-xs text-gray-400 italic">No variants added yet.</p>
+                <p className="text-xs text-gray-400 italic">No weight variants added yet.</p>
               )}
               {form.variants.map((row, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-[110px_1fr_90px_90px_70px_auto] gap-2 items-end bg-gray-50 rounded-lg p-2"
+                  className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-end bg-gray-50 rounded-lg p-2"
                 >
                   <div>
-                    {i === 0 && <p className="text-[10px] text-gray-400 uppercase mb-1">Type</p>}
+                    {i === 0 && <p className="text-[10px] text-gray-400 uppercase mb-1">Weight Label</p>}
                     <input
-                      list="variant-types"
-                      placeholder="weight…"
-                      value={row.type}
-                      onChange={(e) => updateVariant(i, "type", e.target.value)}
-                      className={inputCls}
-                    />
-                    <datalist id="variant-types">
-                      <option value="weight" />
-                      <option value="size" />
-                      <option value="color" />
-                    </datalist>
-                  </div>
-                  <div>
-                    {i === 0 && <p className="text-[10px] text-gray-400 uppercase mb-1">Value</p>}
-                    <input
-                      placeholder="e.g. 5kg"
-                      value={row.name}
-                      onChange={(e) => updateVariant(i, "name", e.target.value)}
+                      placeholder="e.g. 250g, 500g, 1kg"
+                      value={row.weight_label}
+                      onChange={(e) => updateVariant(i, "weight_label", e.target.value)}
                       className={inputCls}
                     />
                   </div>
@@ -495,8 +460,8 @@ export default function ProductForm({ initialProduct }: Props) {
                       type="number"
                       min="0"
                       placeholder="0"
-                      value={row.price}
-                      onChange={(e) => updateVariant(i, "price", e.target.value)}
+                      value={row.base_price}
+                      onChange={(e) => updateVariant(i, "base_price", e.target.value)}
                       className={inputCls}
                     />
                   </div>
@@ -506,8 +471,8 @@ export default function ProductForm({ initialProduct }: Props) {
                       type="number"
                       min="0"
                       placeholder="0"
-                      value={row.discountPrice}
-                      onChange={(e) => updateVariant(i, "discountPrice", e.target.value)}
+                      value={row.discount_price}
+                      onChange={(e) => updateVariant(i, "discount_price", e.target.value)}
                       className={inputCls}
                     />
                   </div>
@@ -516,7 +481,7 @@ export default function ProductForm({ initialProduct }: Props) {
                     <input
                       type="number"
                       min="0"
-                      placeholder="—"
+                      placeholder="0"
                       value={row.stock}
                       onChange={(e) => updateVariant(i, "stock", e.target.value)}
                       className={inputCls}
@@ -537,7 +502,7 @@ export default function ProductForm({ initialProduct }: Props) {
               onClick={addVariantRow}
               className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              <Plus size={13} /> Add Variant Row
+              <Plus size={13} /> Add Weight Variant
             </button>
           </div>
         )}
@@ -617,7 +582,7 @@ export default function ProductForm({ initialProduct }: Props) {
           <Field label="Meta Title">
             <input
               maxLength={60}
-              placeholder="Defaults to product title"
+              placeholder="Defaults to English product title"
               value={form.metaTitle}
               onChange={(e) => setForm((f) => ({ ...f, metaTitle: e.target.value }))}
               className={inputCls}

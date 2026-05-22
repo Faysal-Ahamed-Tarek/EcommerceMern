@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import HeroSlider from "@/components/home/HeroSlider";
 import TrustBadges from "@/components/home/TrustBadges";
 import CategoryGrid from "@/components/home/CategoryGrid";
-import TopSellingSection from "@/components/home/TopSellingSection";
-import FeaturedProducts from "@/components/home/FeaturedProducts";
-import PromoBanner from "@/components/home/PromoBanner";
-import ReviewsSection from "@/components/home/ReviewsSection";
-import CategoryCarousel from "@/components/home/CategoryCarousel";
+import HomeLazySections from "@/components/home/HomeLazySections";
 import type { Product, HomeReview, HeroSlide, PromoPanel, Category, ApiResponse } from "@/types";
 
 interface CarouselSection {
@@ -123,21 +119,19 @@ export default async function HomePage() {
 
   return (
     <main className="max-w-[1200px] mx-auto px-4 py-5">
+      {/* Above fold — always eager, server-rendered */}
       <HeroSlider slides={slides} />
       <TrustBadges />
       <CategoryGrid />
-      <TopSellingSection products={topSellingProducts} />
-      <FeaturedProducts products={featuredProducts} />
-      <PromoBanner panel={promoPanel} />
-      {carouselSections.map(({ category, products }) => (
-        <CategoryCarousel
-          key={category._id}
-          categoryName={category.name}
-          categorySlug={category.slug}
-          products={products}
-        />
-      ))}
-      <ReviewsSection reviews={reviews} />
+
+      {/* Below fold — client-side lazy loaded via IntersectionObserver */}
+      <HomeLazySections
+        topSellingProducts={topSellingProducts}
+        featuredProducts={featuredProducts}
+        promoPanel={promoPanel}
+        carouselSections={carouselSections}
+        reviews={reviews}
+      />
     </main>
   );
 }

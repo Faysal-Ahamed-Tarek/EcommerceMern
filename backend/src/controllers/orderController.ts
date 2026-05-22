@@ -36,7 +36,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           return;
         }
       } else {
-        const variant = product.variants?.find((v) => v.name === item.variant);
+        const variant = product.variants?.find((v) => v.weight_label === item.variant);
         if (variant?.stock !== undefined && variant.stock < item.quantity) {
           res.status(400).json({
             success: false,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { memo, useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "@/components/product/ProductCard";
@@ -10,7 +10,7 @@ interface Props {
   products: Product[];
 }
 
-export default function FeaturedProducts({ products }: Props) {
+const FeaturedProducts = memo(function FeaturedProducts({ products }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -43,10 +43,10 @@ export default function FeaturedProducts({ products }: Props) {
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <span className="block w-1 h-6 bg-green-600 rounded-full" />
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Featured Products</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">For you</h2>
         </div>
         <Link
-          href="/products"
+          href="/products?featured=true"
           className="text-sm font-semibold text-green-600 hover:text-green-800 transition-colors"
         >
           View all →
@@ -89,4 +89,6 @@ export default function FeaturedProducts({ products }: Props) {
       </div>
     </section>
   );
-}
+});
+
+export default FeaturedProducts;

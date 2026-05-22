@@ -151,7 +151,7 @@ export function ProductsContent() {
           {filterType === "topSelling"
             ? "Top Selling"
             : filterType === "featured"
-            ? "Featured Products"
+            ? "For you"
             : "All Products"}
         </span>
       </nav>
@@ -174,43 +174,68 @@ export function ProductsContent() {
 
         {/* ── Main ── */}
         <div className="flex-1 min-w-0">
-          {/* Top bar */}
-          <div className="flex flex-wrap items-center gap-3 mb-5">
-            {/* Search */}
-            <div className="flex-1 relative min-w-[180px]">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search products…"
-                aria-label="Search products"
-                className="w-full border-2 border-gray-200 focus:border-green-500 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-colors"
-              />
+          {/* Top bar — desktop: one row; mobile: search full-width then sort+filter row */}
+          <div className="mb-5">
+            {/* Desktop: single row */}
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="flex-1 relative">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search products…"
+                  aria-label="Search products"
+                  className="w-full border-2 border-gray-200 focus:border-green-500 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-colors"
+                />
+              </div>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                aria-label="Sort products"
+                className="border-2 border-gray-200 focus:border-green-500 rounded-xl px-3 py-2.5 text-sm outline-none bg-white font-medium transition-colors"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Sort */}
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              aria-label="Sort products"
-              className="border-2 border-gray-200 focus:border-green-500 rounded-xl px-3 py-2.5 text-sm outline-none bg-white font-medium transition-colors"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-
-            {/* Mobile filter btn */}
-            <button
-              onClick={() => setShowFilter((v) => !v)}
-              aria-label="Toggle filters"
-              aria-expanded={showFilter}
-              className="lg:hidden flex items-center gap-1.5 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-green-400 transition-colors"
-            >
-              <SlidersHorizontal size={15} />
-              Filter {hasActiveFilter && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
-            </button>
+            {/* Mobile: search full row, then sort + filter button */}
+            <div className="lg:hidden space-y-2.5">
+              <div className="relative">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search products…"
+                  aria-label="Search products"
+                  className="w-full border-2 border-gray-200 focus:border-green-500 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-colors"
+                />
+              </div>
+              <div className="flex items-center gap-2.5">
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  aria-label="Sort products"
+                  className="flex-1 border-2 border-gray-200 focus:border-green-500 rounded-xl px-3 py-2.5 text-sm outline-none bg-white font-medium transition-colors"
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setShowFilter((v) => !v)}
+                  aria-label="Toggle filters"
+                  aria-expanded={showFilter}
+                  className="flex items-center gap-1.5 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-green-400 transition-colors"
+                >
+                  <SlidersHorizontal size={15} />
+                  Filter {hasActiveFilter && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Mobile filter drawer */}
@@ -412,7 +437,7 @@ const FilterPanel = memo(function FilterPanel({
             {(
               [
                 ["", "All"],
-                ["featured", "Featured"],
+                ["featured", "For you"],
                 ["topSelling", "Top Selling"],
               ] as const
             ).map(([val, label]) => (

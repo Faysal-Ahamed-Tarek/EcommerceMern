@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SafeImage from "@/components/ui/SafeImage";
 import {
-  ShoppingCart, Zap, MessageCircle, ChevronRight, ChevronDown,
+  ShoppingCart, Zap, ChevronRight, ChevronDown,
   Minus, Plus, Star, Loader2, ImagePlus, X, BadgeCheck, PenLine,
 } from "lucide-react";
 import DOMPurify from "dompurify";
@@ -264,9 +264,6 @@ export default function ProductDetailClient({ product }: Props) {
 
   const [mainImage, setMainImage] = useState(product.images[0]?.cloudinaryUrl ?? "");
   const [qty, setQty] = useState(1);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  const toggleSection = (key: string) =>
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
@@ -288,53 +285,41 @@ export default function ProductDetailClient({ product }: Props) {
     }
   }, [product.slug]);
 
-  // Defer review fetch to after first paint so the product UI is immediately interactive
   useEffect(() => {
     const id = setTimeout(fetchReviews, 0);
     return () => clearTimeout(id);
   }, [fetchReviews]);
 
-  const variantGroups = useMemo(() => {
-    if (!product.variants || product.variants.length === 0) return [];
-    const map = new Map<string, ProductVariant[]>();
-    for (const v of product.variants) {
-      if (!map.has(v.type)) map.set(v.type, []);
-      map.get(v.type)!.push(v);
+  const variants = product.variants ?? [];
+  const hasVariants = variants.length > 0;
+
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    hasVariants ? variants[0] : null
+  );
+
+  const displayPrice = useMemo(() => {
+    if (hasVariants) {
+      if (!selectedVariant) return 0;
+      return selectedVariant.discount_price && selectedVariant.discount_price > 0
+        ? selectedVariant.discount_price
+        : (selectedVariant.base_price ?? 0);
     }
-    return Array.from(map.entries());
-  }, [product.variants]);
-
-  const hasVariants = variantGroups.length > 0;
-
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>(() => {
-    const defaults: Record<string, ProductVariant> = {};
-    for (const [type, options] of variantGroups) {
-      defaults[type] = options[0];
-    }
-    return defaults;
-  });
-
-  const selectVariant = (type: string, variant: ProductVariant) => {
-    setSelectedVariants((prev) => ({ ...prev, [type]: variant }));
-  };
-
-  const primarySelected = hasVariants ? Object.values(selectedVariants)[0] : null;
-
-  const displayPrice = useMemo(() => hasVariants
-    ? primarySelected
-      ? primarySelected.discountPrice > 0 ? primarySelected.discountPrice : primarySelected.price
-      : 0
-    : product.DiscountPrice > 0 ? product.DiscountPrice : product.basePrice,
-  [hasVariants, primarySelected, product.DiscountPrice, product.basePrice]);
+    return product.DiscountPrice > 0 ? product.DiscountPrice : product.basePrice;
+  }, [hasVariants, selectedVariant, product.DiscountPrice, product.basePrice]);
 
   const baseDisplayPrice = useMemo(() =>
-    hasVariants ? primarySelected?.price ?? 0 : product.basePrice,
-  [hasVariants, primarySelected, product.basePrice]);
+    hasVariants ? (selectedVariant?.base_price ?? 0) : product.basePrice,
+  [hasVariants, selectedVariant, product.basePrice]);
 
-  const hasDiscount = useMemo(() => hasVariants
-    ? !!primarySelected && primarySelected.discountPrice > 0 && primarySelected.discountPrice < primarySelected.price
-    : product.DiscountPrice > 0 && product.DiscountPrice < product.basePrice,
-  [hasVariants, primarySelected, product.DiscountPrice, product.basePrice]);
+  const hasDiscount = useMemo(() => {
+    if (hasVariants) {
+      return !!selectedVariant &&
+        !!selectedVariant.discount_price &&
+        selectedVariant.discount_price > 0 &&
+        selectedVariant.discount_price < selectedVariant.base_price;
+    }
+    return product.DiscountPrice > 0 && product.DiscountPrice < product.basePrice;
+  }, [hasVariants, selectedVariant, product.DiscountPrice, product.basePrice]);
 
   const discountPct = useMemo(() =>
     hasDiscount && baseDisplayPrice > 0
@@ -343,24 +328,20 @@ export default function ProductDetailClient({ product }: Props) {
   [hasDiscount, baseDisplayPrice, displayPrice]);
 
   const sanitizedDesc = useMemo(() => sanitize(product.description), [product.description]);
-  const sanitizedHowToUse = useMemo(
-    () => (product.howToUse ? sanitize(product.howToUse) : ""),
-    [product.howToUse]
-  );
-  const sanitizedIngredients = useMemo(
-    () => (product.ingredients ? sanitize(product.ingredients) : ""),
-    [product.ingredients]
-  );
 
-  const variantLabel = useMemo(() => hasVariants
-    ? Object.values(selectedVariants).map((v) => v.name).join(" / ")
-    : "Default",
-  [hasVariants, selectedVariants]);
+  const variantLabel = useMemo(() =>
+    hasVariants ? selectedVariant?.weight_label ?? "" : "Default",
+  [hasVariants, selectedVariant]);
+
+  // Combined display title: "বাংলা / English" or just English
+  const displayTitle = product.title_bn
+    ? `${product.title_bn} / ${product.title_en}`
+    : product.title_en;
 
   const handleAddToCart = () => {
     addItem({
       productSlug: product.slug,
-      title: product.title,
+      title: product.title_en,
       image: mainImage,
       variant: variantLabel,
       price: displayPrice,
@@ -374,10 +355,6 @@ export default function ProductDetailClient({ product }: Props) {
     router.push("/checkout");
   };
 
-  const whatsappMsg = useMemo(() => encodeURIComponent(
-    `Hi, I want to order:\n*${product.title}*${hasVariants ? `\nVariant: ${variantLabel}` : ""}\nQty: ${qty}`
-  ), [product.title, hasVariants, variantLabel, qty]);
-
   const visibleReviews = useMemo(() => reviews.slice(0, visibleCount), [reviews, visibleCount]);
   const hasMoreReviews = reviews.length > visibleCount;
 
@@ -390,7 +367,7 @@ export default function ProductDetailClient({ product }: Props) {
         <ChevronRight size={12} />
         <Link href="/products" className="hover:text-green-600">Products</Link>
         <ChevronRight size={12} />
-        <span className="text-gray-800 font-medium line-clamp-1 max-w-[200px]">{product.title}</span>
+        <span className="text-gray-800 font-medium line-clamp-1 max-w-[200px]">{product.title_en}</span>
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
@@ -400,7 +377,7 @@ export default function ProductDetailClient({ product }: Props) {
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
             <SafeImage
               src={mainImage}
-              alt={product.title}
+              alt={product.title_en}
               fill
               priority
               className="object-cover"
@@ -438,13 +415,13 @@ export default function ProductDetailClient({ product }: Props) {
             <p className="text-xs text-green-600 capitalize font-semibold uppercase tracking-wider mb-1">
               {product.category}
             </p>
-            <h1 className="text-2xl sm:text-3xl capitalize font-extrabold text-gray-900 leading-tight">
-              {product.title}
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+              {displayTitle}
             </h1>
           </div>
 
           <div>
-            <div className="flex items-baseline gap-3">
+            <div className="flex items-center gap-3">
               <span className="text-3xl font-extrabold text-green-700">
                 ৳{displayPrice.toLocaleString()}
               </span>
@@ -461,83 +438,30 @@ export default function ProductDetailClient({ product }: Props) {
             </div>
           </div>
 
-          {product.shortDescription && (
-            <p className="text-gray-700 text-sm leading-relaxed py-2">{product.shortDescription}</p>
-          )}
 
-          {/* ── Accordion: How to Use / Ingredients ── */}
-          {(product.howToUse || product.ingredients) && (
-            <div className="overflow-hidden divide-y">
-              {product.howToUse && (
-                <div className="mb-4 border border-green-100">
-                  <button
-                    onClick={() => toggleSection("howToUse")}
-                    className="w-full flex items-center justify-between px-4 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors text-sm font-semibold text-gray-800"
-                  >
-                    How to Use
-                    <ChevronDown
-                      size={16}
-                      className={`text-gray-500 transition-transform duration-200 ${openSections["howToUse"] ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {openSections["howToUse"] && (
-                    <div
-                      className="px-4 py-4 prose prose-sm max-w-none text-gray-700"
-                      dangerouslySetInnerHTML={{ __html: sanitizedHowToUse }}
-                    />
-                  )}
-                </div>
-              )}
-              {product.ingredients && (
-                <div className="mb-4 border border-green-100">
-                  <button
-                    onClick={() => toggleSection("ingredients")}
-                    className="w-full flex items-center justify-between px-4 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors text-sm font-semibold text-gray-800"
-                  >
-                    Ingredients
-                    <ChevronDown
-                      size={16}
-                      className={`text-gray-500 transition-transform duration-200 ${openSections["ingredients"] ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {openSections["ingredients"] && (
-                    <div
-                      className="px-4 py-4 prose prose-sm max-w-none text-gray-700 font-sans"
-                      dangerouslySetInnerHTML={{ __html: sanitizedIngredients }}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Variant Selectors ── */}
-          {variantGroups.map(([type, options], gi) => (
-            <div key={`${type}-${gi}`}>
-              <p className="text-sm font-semibold text-gray-800 mb-2 capitalize">{type}:</p>
+          {/* ── Weight Variant Selectors ── */}
+          {hasVariants && (
+            <div>
+              <p className="text-sm font-semibold text-gray-800 mb-2">Weight:</p>
               <div className="flex flex-wrap gap-2">
-                {options.map((v, oi) => {
-                  const isSelected = selectedVariants[type]?.name === v.name;
-                  const optionPrice = v.discountPrice > 0 ? v.discountPrice : v.price;
+                {variants.map((v, i) => {
+                  const isSelected = selectedVariant?.weight_label === v.weight_label;
                   return (
                     <button
-                      key={`${v.name}-${oi}`}
-                      onClick={() => selectVariant(type, v)}
+                      key={`${v.weight_label}-${i}`}
+                      onClick={() => setSelectedVariant(v)}
                       className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${isSelected
                           ? "border-green-600 bg-green-50 text-green-800 shadow-sm"
                           : "border-gray-200 text-gray-700 hover:border-gray-400"
                         }`}
                     >
-                      <span>{v.name}</span>
-                      <span className={`ml-2 text-xs ${isSelected ? "text-green-700" : "text-gray-500"}`}>
-                        ৳{optionPrice.toLocaleString()}
-                      </span>
+                      {v.weight_label}
                     </button>
                   );
                 })}
               </div>
             </div>
-          ))}
+          )}
 
           {/* Quantity */}
           <div>
@@ -569,35 +493,10 @@ export default function ProductDetailClient({ product }: Props) {
             </button>
           </div>
 
-          {/* WhatsApp */}
-          <a
-            href={`https://wa.me/8801XXXXXXXXX?text=${whatsappMsg}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1da851] transition-colors text-white py-3.5 rounded-2xl font-bold text-sm w-full"
-          >
-            <MessageCircle size={18} />
-            Order via WhatsApp
-          </a>
-
           {product.sku && (
             <p className="text-xs text-gray-400 font-mono">SKU: {product.sku}</p>
           )}
 
-          {/* Trust badges */}
-          <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-100">
-            {[
-              { icon: "🚚", label: "Free delivery", sub: "above ৳999" },
-              { icon: "✅", label: "Genuine", sub: "quality assured" },
-              { icon: "↩️", label: "7-day", sub: "easy return" },
-            ].map((b) => (
-              <div key={b.label} className="text-center bg-gray-50 rounded-xl py-3 px-2">
-                <span className="text-xl">{b.icon}</span>
-                <p className="text-xs font-semibold text-gray-800 mt-1">{b.label}</p>
-                <p className="text-[10px] text-gray-500">{b.sub}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -610,6 +509,7 @@ export default function ProductDetailClient({ product }: Props) {
         <div
           className="prose prose-md max-w-none text-gray-700 prose-headings:text-gray-900 prose-a:text-green-600"
           dangerouslySetInnerHTML={{ __html: sanitizedDesc }}
+          suppressHydrationWarning
         />
       </div>
 
@@ -665,7 +565,7 @@ export default function ProductDetailClient({ product }: Props) {
             <p className="text-sm">No reviews yet. Be the first to review!</p>
             <button
               onClick={() => setReviewModalOpen(true)}
-              className="mt-3 cursor-pointer text-green-600 text-sm font-semibold hover:underline "
+              className="mt-3 cursor-pointer text-green-600 text-sm font-semibold hover:underline"
             >
               Write a Review
             </button>
@@ -674,7 +574,6 @@ export default function ProductDetailClient({ product }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {visibleReviews.map((r) => (
               <div key={r._id} className="p-5 sm:p-6 bg-emerald-50/40 rounded-2xl">
-                {/* Header: avatar + name + date | rating */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`shrink-0 w-10 h-10 rounded-full ${avatarColor(r.customerName)} flex items-center justify-center text-white font-bold text-sm`}>
@@ -683,10 +582,6 @@ export default function ProductDetailClient({ product }: Props) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-gray-900 text-sm capitalize">{r.customerName}</span>
-                        {/* <span className="inline-flex items-center gap-1 text-[11px] text-green-700 border border-green-200 bg-green-50 px-1.5 py-0.5 rounded-full font-medium">
-                          <BadgeCheck size={11} />
-                          Authorized
-                        </span> */}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">{timeAgo(r.createdAt)}</p>
                     </div>
@@ -696,17 +591,15 @@ export default function ProductDetailClient({ product }: Props) {
                       <BadgeCheck size={11} />
                       Authorized
                     </span>
-                    <div className ="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <span className="font-bold text-gray-800 text-sm">{r.rating}.0</span>
                       <StarDisplay value={r.rating} />
                     </div>
                   </div>
                 </div>
 
-                {/* Comment */}
                 <p className="text-gray-700 text-sm leading-relaxed">{r.comment}</p>
 
-                {/* Review image */}
                 {r.imageUrl && (
                   <div className="mt-3 flex gap-2 flex-wrap">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -723,7 +616,6 @@ export default function ProductDetailClient({ product }: Props) {
             ))}
 
             {hasMoreReviews && (
-              
               <div className="md:col-span-2 px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 flex justify-center">
                 <button
                   onClick={() => setVisibleCount((c) => c + REVIEWS_PER_PAGE)}

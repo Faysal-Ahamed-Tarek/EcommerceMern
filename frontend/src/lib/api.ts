@@ -1,6 +1,14 @@
 import axios from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const PROD_API_URL = "https://herblifenutri.com/api";
+
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.trim() ||
+  (typeof window !== "undefined"
+    ? "/api"
+    : process.env.NODE_ENV === "production"
+    ? PROD_API_URL
+    : "http://localhost:5000/api");
 
 export const api = axios.create({
   baseURL: BASE_URL,

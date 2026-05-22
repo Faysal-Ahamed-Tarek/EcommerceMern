@@ -27,6 +27,7 @@ export interface SiteConfig {
   storeTagline?: string;
   siteTitle?: string;
   favicon?: string;
+  marqueeEnabled: boolean;
   marqueeTexts: string[];
   headerLogo?: string;
   footerLogo?: string;
@@ -39,10 +40,12 @@ export interface SiteConfig {
   footerLocation: string;
   trustBadges: TrustBadge[];
   deliveryZones: DeliveryZone[];
+  headerPhone?: string;
 }
 
 const DEFAULT_CONFIG: SiteConfig = {
   primaryColor: "#16a34a",
+  marqueeEnabled: true,
   marqueeTexts: [
     "🚚 Free delivery on orders above ৳999",
     "Cash on Delivery available across Bangladesh",
@@ -94,6 +97,7 @@ export function SiteDataProvider({ children }: { children: ReactNode }) {
           storeTagline: d.storeTagline,
           siteTitle: d.siteTitle,
           favicon: d.favicon,
+          marqueeEnabled: d.marqueeEnabled !== false,
           marqueeTexts:
             d.marqueeTexts?.length > 0 ? d.marqueeTexts : DEFAULT_CONFIG.marqueeTexts,
           headerLogo: d.headerLogo || undefined,
@@ -107,6 +111,7 @@ export function SiteDataProvider({ children }: { children: ReactNode }) {
           footerLocation: d.footerLocation || DEFAULT_CONFIG.footerLocation,
           trustBadges: d.trustBadges?.length > 0 ? d.trustBadges : DEFAULT_CONFIG.trustBadges,
           deliveryZones: d.deliveryZones?.length >= 2 ? d.deliveryZones : DEFAULT_CONFIG.deliveryZones,
+          headerPhone: d.headerPhone || undefined,
         });
       }
     });

@@ -1,4 +1,4 @@
-const FALLBACK_ORIGIN = "https://drskinc.com";
+const FALLBACK_ORIGIN = "https://herblifenutri.com";
 
 /**
  * Returns the canonical site origin.

@@ -27,6 +27,7 @@ export interface ISiteConfig extends Document {
   storePhone?: string;
   storeEmail?: string;
   storeLogo?: string;
+  marqueeEnabled: boolean;
   marqueeTexts: string[];
   headerLogo?: string;
   footerLogo?: string;
@@ -44,6 +45,7 @@ export interface ISiteConfig extends Document {
   siteUrl?: string;
   defaultOgImage?: string;
   defaultMetaDescription?: string;
+  headerPhone?: string;
   // Admin panel branding
   adminPanelName?: string;
   adminPanelLogo?: string;
@@ -60,6 +62,7 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
     storePhone: { type: String },
     storeEmail: { type: String },
     storeLogo: { type: String },
+    marqueeEnabled: { type: Boolean, default: true },
     marqueeTexts: {
       type: [String],
       default: [
@@ -105,6 +108,7 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
     siteUrl: { type: String },
     defaultOgImage: { type: String },
     defaultMetaDescription: { type: String },
+    headerPhone: { type: String },
     adminPanelName: { type: String },
     adminPanelLogo: { type: String },
   },

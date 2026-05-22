@@ -1,12 +1,15 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
+import { CldUploadWidget } from "next-cloudinary";
+import { AlignLeft, AlignCenter, AlignRight, AlignJustify, ImagePlus } from "lucide-react";
 
 interface Props {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   minHeight?: string;
+  uploadPreset?: string;
 }
 
 export default function RichTextEditor({
@@ -14,6 +17,7 @@ export default function RichTextEditor({
   onChange,
   placeholder = "Enter description...",
   minHeight = "220px",
+  uploadPreset,
 }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isSetting = useRef(false);
@@ -46,7 +50,6 @@ export default function RichTextEditor({
   }, [onChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Prevent form submission on Enter key
     if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
       exec("insertLineBreak");
@@ -57,6 +60,37 @@ export default function RichTextEditor({
     const url = window.prompt("Enter URL (https://...):");
     if (url?.trim()) exec("createLink", url.trim());
   };
+
+  const handleImageUrl = () => {
+    const url = window.prompt("Enter image URL (https://...):");
+    if (url?.trim()) {
+      editorRef.current?.focus();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (document as any).execCommand(
+        "insertHTML",
+        false,
+        `<img src="${url.trim()}" style="max-width:100%;height:auto;" />`
+      );
+      onChange(editorRef.current?.innerHTML ?? "");
+    }
+  };
+
+  const handleCloudinaryUpload = useCallback(
+    (result: unknown) => {
+      const info = (result as { info?: { secure_url?: string } })?.info;
+      if (info?.secure_url) {
+        editorRef.current?.focus();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (document as any).execCommand(
+          "insertHTML",
+          false,
+          `<img src="${info.secure_url}" style="max-width:100%;height:auto;" />`
+        );
+        onChange(editorRef.current?.innerHTML ?? "");
+      }
+    },
+    [onChange]
+  );
 
   return (
     <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-400 focus-within:border-indigo-400">
@@ -86,9 +120,48 @@ export default function RichTextEditor({
           <span className="text-xs">1. List</span>
         </Btn>
         <Sep />
+        {/* Alignment controls */}
+        <Btn onClick={() => exec("justifyLeft")} title="Align left">
+          <AlignLeft size={13} />
+        </Btn>
+        <Btn onClick={() => exec("justifyCenter")} title="Align center">
+          <AlignCenter size={13} />
+        </Btn>
+        <Btn onClick={() => exec("justifyRight")} title="Align right">
+          <AlignRight size={13} />
+        </Btn>
+        <Btn onClick={() => exec("justifyFull")} title="Justify">
+          <AlignJustify size={13} />
+        </Btn>
+        <Sep />
         <Btn onClick={handleLink} title="Insert link">
           <span className="text-xs">🔗 Link</span>
         </Btn>
+        {/* Image upload — Cloudinary if preset provided, URL fallback otherwise */}
+        {uploadPreset ? (
+          <CldUploadWidget
+            uploadPreset={uploadPreset}
+            onSuccess={handleCloudinaryUpload}
+            options={{ multiple: false, resourceType: "image" }}
+          >
+            {({ open }) => (
+              <Btn
+                onClick={() => open()}
+                title="Upload image"
+              >
+                <span className="flex items-center gap-1 text-xs">
+                  <ImagePlus size={12} /> Image
+                </span>
+              </Btn>
+            )}
+          </CldUploadWidget>
+        ) : (
+          <Btn onClick={handleImageUrl} title="Insert image by URL">
+            <span className="flex items-center gap-1 text-xs">
+              <ImagePlus size={12} /> Image
+            </span>
+          </Btn>
+        )}
         <Btn onClick={() => exec("removeFormat")} title="Clear formatting">
           <span className="text-xs text-gray-500">✕ Clear</span>
         </Btn>

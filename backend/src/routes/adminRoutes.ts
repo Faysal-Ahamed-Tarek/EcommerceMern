@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
-  adminLogin, adminLogout, changePassword,
+  adminLogin, adminLogout, changePassword, forgotPassword, resetPassword,
   getMe, getStats, getAdminProducts, getAdminProductById,
   getAllAdminReviews, getLowInventoryProducts, getTopSellingProducts,
   getNotificationCounts, getRevenueChart,
@@ -23,10 +23,21 @@ const loginLimiter = rateLimit({
   message: { success: false, message: 'Too many login attempts. Please try again later.' },
 });
 
+// Very strict limiter for forgot-password: 5 requests per hour per IP
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many reset requests. Please try again later.' },
+});
+
 const router = Router();
 
 router.post('/login', loginLimiter, adminLogin);
 router.post('/logout', protect, adminLogout);
+router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
+router.post('/reset-password', resetPassword);
 router.get('/me', protect, getMe);
 router.patch('/me/password', protect, changePassword);
 router.get('/stats', protect, getStats);

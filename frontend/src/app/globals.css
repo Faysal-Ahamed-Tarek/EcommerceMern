@@ -37,6 +37,12 @@
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 html { scroll-behavior: smooth; }
+button, [role="button"] { cursor: pointer; }
+
+/* Tailwind Typography sets its own font-family on child elements — override it */
+.prose, .prose * {
+  font-family: var(--font-maven-pro), system-ui, sans-serif;
+}
 
 body {
   background-color: #ffffff;

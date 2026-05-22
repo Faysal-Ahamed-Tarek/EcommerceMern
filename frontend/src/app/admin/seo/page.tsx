@@ -218,7 +218,7 @@ export default function AdminSEOPage() {
               type="url"
               value={siteDefaults.siteUrl}
               onChange={(e) => setSiteDefaults((d) => ({ ...d, siteUrl: e.target.value }))}
-              placeholder="https://drskinc.com"
+              placeholder="https://herblifenutri.com"
               className="w-full border-2 border-gray-200 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors bg-white"
             />
             <p className="text-xs text-gray-400 mt-1">

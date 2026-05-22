@@ -4,14 +4,20 @@ import { Product, Category, Review } from '../models';
 
 const MONGO_URI = process.env.MONGODB_URI as string;
 
-const CATEGORIES = [
-  { name: 'Skincare', slug: 'skincare' },
-  { name: 'Electronics', slug: 'electronics' },
-  { name: 'Fashion', slug: 'fashion' },
-  { name: 'Food & Grocery', slug: 'food-grocery' },
-];
+// Demo categories have been removed. Add real categories via the admin panel.
+const CATEGORIES: { name: string; slug: string }[] = [];
 
-const PRODUCTS = [
+// Demo products have been removed. Add real products via the admin panel.
+const PRODUCTS: {
+  title: string; description: string; shortDescription: string; category: string;
+  basePrice: number; DiscountPrice: number; totalStock: number; isFeatured: boolean;
+  isTopSelling: boolean; status: 'draft' | 'published';
+  images: { cloudinaryUrl: string; publicId: string }[];
+  variants: { type: string; name: string; price: number; discountPrice: number; stock?: number }[];
+  reviews: { customerName: string; rating: number; comment: string }[];
+}[] = [];
+
+const _REMOVED_PRODUCTS = [
   {
     title: 'Organic Face Cream',
     description: 'A nourishing organic face cream made with natural ingredients. Deeply moisturizes and rejuvenates skin for a youthful glow.',
@@ -222,7 +228,7 @@ const PRODUCTS = [
       { customerName: 'Naim Uddin', rating: 4, comment: 'Works great. Gets slightly warm under heavy load but nothing concerning.' },
     ],
   },
-];
+]; // _REMOVED_PRODUCTS — kept for reference only, never used
 
 async function seed() {
   await mongoose.connect(MONGO_URI);
@@ -256,7 +262,7 @@ async function seed() {
 
     const product = await Product.create(productData);
     productCount++;
-    console.log(`  ✅ Product "${product.title}" (slug: ${product.slug})`);
+    console.log(`  ✅ Product "${product.title_en}" (slug: ${product.slug})`);
 
     // Create reviews for this product
     for (const rv of reviewData) {

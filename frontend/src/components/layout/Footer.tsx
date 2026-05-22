@@ -73,7 +73,7 @@ export default function Footer() {
               </div>
             )}
           </div>
-          <p className="text-sm text-gray-500 leading-relaxed">{config.footerDescription}</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{config.footerDescription}</p>
           {activeSocials.length > 0 && (
             <div className="flex gap-2 pt-1">
               {activeSocials.map((s) => {
@@ -104,7 +104,7 @@ export default function Footer() {
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className="text-sm text-gray-500 hover:text-green-600 transition-colors flex items-center gap-1.5 group"
+                  className="text-sm text-gray-700 hover:text-green-600 transition-colors flex items-center gap-1.5 group"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-green-500 transition-colors" />
                   {l.label}
@@ -118,15 +118,15 @@ export default function Footer() {
         <div>
           <h4 className="text-gray-900 font-semibold mb-4 text-sm uppercase tracking-wider">Contact Us</h4>
           <ul className="space-y-3">
-            <li className="flex items-start gap-2.5 text-sm text-gray-500">
+            <li className="flex items-start gap-2.5 text-sm text-gray-700">
               <Phone size={15} className="text-green-500 mt-0.5 shrink-0" />
               <span>{config.footerPhone}</span>
             </li>
-            <li className="flex items-start gap-2.5 text-sm text-gray-500">
+            <li className="flex items-start gap-2.5 text-sm text-gray-700">
               <Mail size={15} className="text-green-500 mt-0.5 shrink-0" />
               <span>{config.footerEmail}</span>
             </li>
-            <li className="flex items-start gap-2.5 text-sm text-gray-500">
+            <li className="flex items-start gap-2.5 text-sm text-gray-700">
               <MapPin size={15} className="text-green-500 mt-0.5 shrink-0" />
               <span>{config.footerLocation}</span>
             </li>
@@ -145,8 +145,8 @@ export default function Footer() {
                     <Icon size={16} className="text-green-600" strokeWidth={1.75} />
                   </div>
                   <div>
-                    <span className="text-gray-800 font-medium">{b.title}</span>
-                    <span className="text-gray-400 text-xs block">{b.desc}</span>
+                    <span className="text-gray-700 font-medium">{b.title}</span>
+                    <span className="text-gray-700 text-xs block">{b.desc}</span>
                   </div>
                 </div>
               );
@@ -157,7 +157,7 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-gray-100">
-        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-700">
           <p>{resolveCopyright(config.copyrightText)}</p>
           <p>{config.paymentMethodsText}</p>
         </div>

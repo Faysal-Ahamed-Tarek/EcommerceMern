@@ -4,7 +4,13 @@ import HomeReview from '../models/HomeReview';
 
 const MONGO_URI = process.env.MONGODB_URI as string;
 
-const REVIEWS = [
+// Demo home reviews have been removed. Add real reviews via the admin panel.
+const REVIEWS: {
+  customerName: string; rating: number; comment: string;
+  isVerified: boolean; isActive: boolean; order: number;
+}[] = [];
+
+const _REMOVED_REVIEWS = [
   {
     customerName: 'Nusrat Jahan',
     rating: 5,
@@ -85,7 +91,7 @@ const REVIEWS = [
     isActive: true,
     order: 10,
   },
-];
+]; // _REMOVED_REVIEWS — kept for reference only, never used
 
 async function seed() {
   await mongoose.connect(MONGO_URI);

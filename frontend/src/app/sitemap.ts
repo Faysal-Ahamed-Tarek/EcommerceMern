@@ -40,14 +40,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
     if (res.ok) {
       const json = await res.json();
-      productEntries = (json.data ?? []).map(
-        (p: { slug: string; updatedAt: string }) => ({
+      productEntries = (json.data ?? []).map((p: { slug: string; updatedAt?: string }) => {
+        const last = p.updatedAt && !isNaN(Date.parse(p.updatedAt)) ? new Date(p.updatedAt) : undefined;
+        return {
           url: `${origin}/products/${encodeURIComponent(p.slug)}`,
-          lastModified: new Date(p.updatedAt),
+          ...(last ? { lastModified: last } : {}),
           changeFrequency: "weekly" as const,
           priority: 0.8,
-        })
-      );
+        };
+      });
     }
   } catch {}
 
@@ -59,12 +60,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const json = await res.json();
       categoryEntries = (json.data ?? [])
         .filter((c: { productCount?: number }) => (c.productCount ?? 0) > 0)
-        .map((c: { slug: string; updatedAt?: string }) => ({
-          url: `${origin}/category/${encodeURIComponent(c.slug)}`,
-          lastModified: c.updatedAt ? new Date(c.updatedAt) : new Date(),
-          changeFrequency: "weekly" as const,
-          priority: 0.7,
-        }));
+        .map((c: { slug: string; updatedAt?: string }) => {
+          const last = c.updatedAt && !isNaN(Date.parse(c.updatedAt)) ? new Date(c.updatedAt) : undefined;
+          return {
+            url: `${origin}/category/${encodeURIComponent(c.slug)}`,
+            ...(last ? { lastModified: last } : {}),
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          };
+        });
     }
   } catch {}
 

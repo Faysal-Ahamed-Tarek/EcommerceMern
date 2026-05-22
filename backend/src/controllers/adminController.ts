@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { Admin, Order, Product, Review } from '../models';
 import { AuthRequest } from '../middleware/auth';
+import { sendPasswordResetEmail } from '../lib/mailer';
 
 const LOGIN_MAX_ATTEMPTS = parseInt(process.env.ADMIN_LOGIN_MAX_ATTEMPTS || '5');
 const LOGIN_LOCK_MINUTES = parseInt(process.env.ADMIN_LOGIN_LOCK_MINUTES || '15');
@@ -175,7 +177,7 @@ export const getLowInventoryProducts = async (_req: Request, res: Response, next
     })
       .sort({ totalStock: 1 })
       .limit(5)
-      .select('title totalStock images slug')
+      .select('title_en title_bn totalStock images slug')
       .lean();
     res.json({ success: true, data: products });
   } catch (err) {
@@ -308,6 +310,81 @@ export const getNotificationCounts = async (_req: Request, res: Response, next: 
       Review.countDocuments({ status: 'pending' }),
     ]);
     res.json({ success: true, data: { pendingOrders, pendingReviews } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim();
+    // Always respond with success so we don't reveal whether email exists
+    const GENERIC_OK = { success: true, message: 'If that email is registered, a reset link has been sent.' };
+
+    if (!email) { res.json(GENERIC_OK); return; }
+
+    const admin = await Admin.findOne({ email });
+    if (!admin) { res.json(GENERIC_OK); return; }
+
+    // Generate a secure random token; store its SHA-256 hash in DB
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    admin.resetPasswordToken = hashed;
+    admin.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await admin.save();
+
+    const baseUrl = process.env.ADMIN_ALLOWED_ORIGINS?.split(',')[0] || 'http://localhost:3000';
+    const resetUrl = `${baseUrl}/admin/reset-password?token=${rawToken}`;
+
+    await sendPasswordResetEmail(admin.email, resetUrl);
+    auditLog('password_reset_requested', { email: admin.email, ip: req.ip || 'unknown' });
+
+    res.json(GENERIC_OK);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body;
+
+    if (!token || !newPassword || !confirmPassword) {
+      res.status(400).json({ success: false, message: 'All fields are required' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      res.status(400).json({ success: false, message: 'Passwords do not match' });
+      return;
+    }
+    if (!PASSWORD_STRONG.test(newPassword)) {
+      res.status(400).json({ success: false, message: 'Password must be at least 8 characters and include a number and special character' });
+      return;
+    }
+
+    const hashed = crypto.createHash('sha256').update(String(token)).digest('hex');
+    const admin = await Admin.findOne({
+      resetPasswordToken: hashed,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!admin) {
+      res.status(400).json({ success: false, message: 'Reset link is invalid or has expired' });
+      return;
+    }
+
+    admin.password = newPassword;
+    admin.passwordChangedAt = new Date();
+    admin.resetPasswordToken = undefined;
+    admin.resetPasswordExpires = undefined;
+    admin.loginAttempts = 0;
+    admin.lockUntil = undefined;
+    await admin.save();
+
+    res.clearCookie('adminToken', { path: '/' });
+    auditLog('password_reset_success', { adminId: admin._id, email: admin.email, ip: req.ip || 'unknown' });
+    res.json({ success: true, message: 'Password reset successful. Please log in.' });
   } catch (err) {
     next(err);
   }

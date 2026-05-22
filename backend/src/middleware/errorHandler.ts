@@ -15,11 +15,14 @@ export const errorHandler = (
 
   if (process.env.NODE_ENV === 'development') {
     console.error(err.stack);
+  } else {
+    // Log message and code in production without leaking stack traces to clients
+    console.error(`[${new Date().toISOString()}] ${statusCode} ${message}`);
   }
 
   res.status(statusCode).json({
     success: false,
-    message,
+    message: statusCode === 500 ? 'Internal Server Error' : message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };

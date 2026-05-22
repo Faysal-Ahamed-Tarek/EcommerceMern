@@ -19,12 +19,48 @@ function cacheSet(key: string, data: unknown, ttlSeconds: number) {
   }
   _cache.set(key, { data, expires: Date.now() + ttlSeconds * 1000 });
 }
+
+// Wipe the entire product cache after any mutation so stale prices/stock
+// are never served to customers.
+function cacheClear() {
+  _cache.clear();
+}
 // ───────────────────────────────────────────────────────────────────────────
+
+// Normalizes a single variant document — handles both old (name/price/discountPrice)
+// and new (weight_label/base_price/discount_price) field names.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeVariant(v: any) {
+  return {
+    weight_label: v.weight_label ?? v.name ?? 'Default',
+    base_price:   v.base_price   ?? v.price ?? 0,
+    discount_price:
+      v.discount_price !== undefined
+        ? v.discount_price
+        : Number(v.discountPrice) > 0
+        ? v.discountPrice
+        : undefined,
+    stock: typeof v.stock === 'number' ? v.stock : 0,
+  };
+}
+
+// Normalizes a product document — works whether the DB migration has been run or not.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeProduct(p: any) {
+  if (!p) return p;
+  if (!p.title_en) p.title_en = p.title ?? '';
+  if (Array.isArray(p.variants)) {
+    p.variants = p.variants.map(normalizeVariant);
+  }
+  return p;
+}
 
 // Fields returned for product listing (detail page fetches full doc via slug)
 const LISTING_PROJECTION = {
   _id: 1,
-  title: 1,
+  title_en: 1,
+  title_bn: 1,
+  title: 1,   // legacy field — kept so normalizeProduct can fall back to it
   slug: 1,
   basePrice: 1,
   DiscountPrice: 1,
@@ -58,7 +94,9 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
       // Escape regex metacharacters to prevent ReDoS.
       const safeSearch = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title: { $regex: safeSearch, $options: 'i' } },
+        { title_en: { $regex: safeSearch, $options: 'i' } },
+        { title:    { $regex: safeSearch, $options: 'i' } }, // legacy field fallback
+        { title_bn: { $regex: safeSearch, $options: 'i' } },
         { description: { $regex: safeSearch, $options: 'i' } },
       ];
     }
@@ -103,7 +141,8 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
     res.set('Cache-Control', hasSearch ? 'private, max-age=60' : 'public, max-age=300');
     res.set('X-Cache', 'MISS');
 
-    const payload = { success: true, data: products, total, page: Number(page), limit: Number(limit) };
+    const normalizedProducts = products.map(normalizeProduct);
+    const payload = { success: true, data: normalizedProducts, total, page: Number(page), limit: Number(limit) };
     cacheSet(cacheKey, payload, ttl);
     res.json(payload);
   } catch (err) {
@@ -118,7 +157,7 @@ export const getProductBySlug = async (req: Request, res: Response, next: NextFu
       res.status(404).json({ success: false, message: 'Product not found' });
       return;
     }
-    res.json({ success: true, data: product });
+    res.json({ success: true, data: normalizeProduct(product) });
   } catch (err) {
     next(err);
   }
@@ -127,6 +166,7 @@ export const getProductBySlug = async (req: Request, res: Response, next: NextFu
 export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const product = await Product.create(req.body);
+    cacheClear();
     res.status(201).json({ success: true, data: product });
   } catch (err) {
     next(err);
@@ -143,6 +183,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       res.status(404).json({ success: false, message: 'Product not found' });
       return;
     }
+    cacheClear();
     res.json({ success: true, data: product });
   } catch (err) {
     next(err);
@@ -152,6 +193,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
 export const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
+    cacheClear();
     res.json({ success: true, message: 'Product deleted' });
   } catch (err) {
     next(err);
@@ -184,7 +226,13 @@ export const getCarouselSections = async (req: Request, res: Response, next: Nex
       { $match: { status: 'published', category: { $in: categoryNames } } },
       { $addFields: { _ord: { $ifNull: ['$order', 999999] }, _rand: { $rand: {} } } },
       { $sort: { _ord: 1, _rand: 1 } as Record<string, 1 | -1> },
-      { $project: { _ord: 0, _rand: 0 } },
+      {
+        $project: {
+          _id: 1, title_en: 1, title_bn: 1, title: 1, slug: 1, basePrice: 1, DiscountPrice: 1, category: 1,
+          images: { $slice: ['$images', 1] }, variants: 1,
+          ratingAverage: 1, ratingCount: 1,
+        },
+      },
       { $group: { _id: '$category', products: { $push: '$$ROOT' } } },
       { $project: { products: { $slice: ['$products', limit] } } },
     ]);
@@ -199,10 +247,11 @@ export const getCarouselSections = async (req: Request, res: Response, next: Nex
         if (!cat) return null;
         const products = byName.get(cat.name) ?? [];
         if (!products.length) return null;
-        return { category: cat, products };
+        return { category: cat, products: (products as unknown[]).map(normalizeProduct) };
       })
       .filter(Boolean);
 
+    res.set('Cache-Control', 'public, max-age=600');
     res.json({ success: true, data });
   } catch (err) {
     next(err);
