@@ -49,6 +49,8 @@ function buildPalette(hex: string): Record<string, string> {
     "--color-green-700": hslToHex(h, s, l - 8 < 5 ? 5 : l - 8),
     "--color-green-800": hslToHex(h, s, l - 16 < 5 ? 5 : l - 16),
     "--color-green-900": hslToHex(h, s, l - 24 < 5 ? 5 : l - 24),
+    "--site-accent": hex,
+    "--site-font": "var(--font-maven-pro)",
   };
 }
 

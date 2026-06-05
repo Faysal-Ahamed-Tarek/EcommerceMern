@@ -6,6 +6,7 @@ import {
   ProductSectionSkeleton,
   PromoBannerSkeleton,
   ReviewsSkeleton,
+  OutletsSkeleton,
 } from "@/components/home/skeletons";
 import type { Product, HomeReview, PromoPanel, Category } from "@/types";
 
@@ -14,6 +15,7 @@ const FeaturedProducts = dynamic(() => import("@/components/home/FeaturedProduct
 const PromoBanner = dynamic(() => import("@/components/home/PromoBanner"), { ssr: false });
 const CategoryCarousel = dynamic(() => import("@/components/home/CategoryCarousel"), { ssr: false });
 const ReviewsSection = dynamic(() => import("@/components/home/ReviewsSection"), { ssr: false });
+const Outlets = dynamic(() => import("@/components/home/Outlets"), { ssr: false });
 
 interface CarouselSection {
   category: Category;
@@ -58,6 +60,10 @@ export default function HomeLazySections({
           />
         </LazySection>
       ))}
+
+      <LazySection skeleton={<OutletsSkeleton />}>
+        <Outlets />
+      </LazySection>
 
       <LazySection skeleton={<ReviewsSkeleton />}>
         <ReviewsSection reviews={reviews} />

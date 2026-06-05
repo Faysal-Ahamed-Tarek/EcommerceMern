@@ -121,7 +121,7 @@ export default async function HomePage() {
     <main className="max-w-[1200px] mx-auto px-4 py-5">
       {/* Above fold — always eager, server-rendered */}
       <HeroSlider slides={slides} />
-      <TrustBadges />
+      {/* <TrustBadges /> */}
       <CategoryGrid />
 
       {/* Below fold — client-side lazy loaded via IntersectionObserver */}

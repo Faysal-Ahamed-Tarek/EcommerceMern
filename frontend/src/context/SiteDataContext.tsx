@@ -47,8 +47,8 @@ const DEFAULT_CONFIG: SiteConfig = {
   primaryColor: "#16a34a",
   marqueeEnabled: true,
   marqueeTexts: [
-    "🚚 Free delivery on orders above ৳999",
-    "Cash on Delivery available across Bangladesh",
+    "🚚 Free delivery on orders above ৳2000",
+    "Cash on Delivery available",
   ],
   footerDescription:
     "Your trusted marketplace for fresh, organic, and quality products. Delivered across Bangladesh with love.",
